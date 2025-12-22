@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>忘年会オーダーシステム</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🍛 忘年会オーダーシステム</h1>
+      <p class="subtitle">インド料理店 メニュー注文フォーム</p>
+      <p class="deadline">📅 締切: 12月24日(水)まで</p>
+    </header>
+
+    <!-- 注文フォーム -->
+    <main id="order-tab" class="tab-content active">
+      <form id="order-form">
+        <section class="form-section">
+          <label class="form-label required">お名前</label>
+          <input type="text" id="name" required placeholder="お名前を入力してください">
+        </section>
+
+        <section class="form-section">
+          <label class="form-label required">オーダータイプ</label>
+          <div class="radio-group type-selection">
+            <label class="radio-card">
+              <input type="radio" name="order-type" value="set" required>
+              <div class="card-content">
+                <span class="card-icon">🍽️</span>
+                <span class="card-title">①セットメニュー</span>
+                <span class="card-desc">4種類のセットから選択</span>
+              </div>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="order-type" value="alacarte">
+              <div class="card-content">
+                <span class="card-icon">🥘</span>
+                <span class="card-title">②アラカルト</span>
+                <span class="card-desc">単品メニューから選択</span>
+              </div>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="order-type" value="kids">
+              <div class="card-content">
+                <span class="card-icon">👶</span>
+                <span class="card-title">③子どもセット</span>
+                <span class="card-desc">小学生までのお子様</span>
+              </div>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="order-type" value="drink-only">
+              <div class="card-content">
+                <span class="card-icon">🍹</span>
+                <span class="card-title">④ドリンクのみ</span>
+                <span class="card-desc">ワンドリンクオーダー</span>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <!-- セットメニュー選択 -->
+        <div id="set-options" class="conditional-section hidden">
+          <section class="form-section">
+            <label class="form-label required">セットを選択</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="set-type" value="shanti">
+                <span class="option-content">
+                  <strong>サンティセット</strong> - 1,485円
+                  <small>カレー1種、ナン又はライス、サラダ、飲み物</small>
+                </span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="set-type" value="ladies">
+                <span class="option-content">
+                  <strong>レディースセット（男性も可）</strong> - 1,850円
+                  <small>カレー2種、ナン、ライス、サラダ、デザート、タンドリーチキン1個、飲み物</small>
+                </span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="set-type" value="tandoori">
+                <span class="option-content">
+                  <strong>タンドリー焼き肉とカレーのセット</strong> - 2,100円
+                  <small>カレー1種、ナン又はライス、サラダ、タンドリーチキン・シークカバブ・チキンティッカ各1個</small>
+                </span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="set-type" value="biryani">
+                <span class="option-content">
+                  <strong>ビリヤニセット</strong> - 1,650円
+                  <small>ビリヤニ1種、カレースープ、サラダ、飲み物</small>
+                </span>
+              </label>
+            </div>
+          </section>
+
+          <!-- サンティセット用 ナン/ライス選択 -->
+          <div id="naan-rice-choice" class="conditional-section hidden">
+            <section class="form-section">
+              <label class="form-label required">ナン or ライス</label>
+              <div class="radio-group horizontal">
+                <label class="radio-option">
+                  <input type="radio" name="naan-rice" value="naan">
+                  <span>ナン</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="naan-rice" value="rice">
+                  <span>ライス</span>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <!-- カレー選択（サンティ・タンドリー用 1種類） -->
+          <div id="curry-1-choice" class="conditional-section hidden">
+            <section class="form-section">
+              <label class="form-label required">カレーを1種類選択</label>
+              <select id="curry-1" class="form-select">
+                <option value="">-- カレーを選んでください --</option>
+                <optgroup label="🐔 チキンカレー">
+                  <option value="チキンカレー(880円)">チキンカレー - ¥880</option>
+                  <option value="チキンマサラカレー(913円)">チキンマサラカレー - ¥913</option>
+                  <option value="新鮮な玉ねぎチキンカレー(935円)">新鮮な玉ねぎチキンカレー - ¥935</option>
+                  <option value="ほうれん草チキンカレー(924円)">ほうれん草チキンカレー - ¥924</option>
+                  <option value="バターチキンカレー(968円)">バターチキンカレー - ¥968</option>
+                  <option value="チキンララカレー(968円)">チキンララカレー（鶏ひき肉）- ¥968</option>
+                  <option value="ビンディチキンカレー(902円)">ビンディチキンカレー - ¥902</option>
+                  <option value="卵カレー(880円)">卵カレー - ¥880</option>
+                  <option value="豆チキンカレー(924円)">豆チキンカレー - ¥924</option>
+                  <option value="タイグリーンカレー(957円)">タイグリーンカレー（激辛）- ¥957</option>
+                </optgroup>
+                <optgroup label="🐑 マトンカレー">
+                  <option value="マトンカレー(880円)">マトンカレー - ¥880</option>
+                  <option value="マトンマサラカレー(979円)">マトンマサラカレー - ¥979</option>
+                  <option value="マトンドピアザカレー(979円)">マトンドピアザカレー（新鮮な玉ねぎ）- ¥979</option>
+                  <option value="豆マトンカレー(979円)">豆マトンカレー - ¥979</option>
+                  <option value="ほうれん草マトンカレー(979円)">ほうれん草マトンカレー - ¥979</option>
+                  <option value="マトンララカレー(979円)">マトンララカレー - ¥979</option>
+                </optgroup>
+                <optgroup label="🥬 野菜カレー">
+                  <option value="ほうれん草チーズカレー(968円)">ほうれん草チーズカレー - ¥968</option>
+                  <option value="ほうれん草豆カレー(902円)">ほうれん草豆カレー - ¥902</option>
+                  <option value="ほうれん草キノコカレー(902円)">ほうれん草キノコカレー - ¥902</option>
+                  <option value="豆カレー(880円)">豆カレー - ¥880</option>
+                  <option value="ミックス野菜カレー(902円)">ミックス野菜カレー - ¥902</option>
+                  <option value="茄子マサラカレー(902円)">茄子マサラカレー - ¥902</option>
+                  <option value="オクラマサラカレー(902円)">オクラマサラカレー - ¥902</option>
+                  <option value="グリンピースとチーズカレー(999円)">グリンピースとチーズカレー - ¥999</option>
+                  <option value="チーズバターカレー(990円)">チーズバターカレー - ¥990</option>
+                  <option value="ヒヨコマメマサラカレー(913円)">ヒヨコマメマサラカレー - ¥913</option>
+                </optgroup>
+                <optgroup label="🦐 シーフードカレー">
+                  <option value="エビカレー(990円)">エビカレー - ¥990</option>
+                  <option value="エビマサラカレー(1012円)">エビマサラカレー - ¥1,012</option>
+                  <option value="エビドピアザカレー(1034円)">エビドピアザカレー - ¥1,034</option>
+                  <option value="ほうれん草と海老カレー(1034円)">ほうれん草と海老カレー - ¥1,034</option>
+                  <option value="エビバターカレー(1034円)">エビバターカレー - ¥1,034</option>
+                  <option value="ミックスシーフードカレー(990円)">ミックスシーフードカレー - ¥990</option>
+                  <option value="ほうれん草シーフードカレー(1034円)">ほうれん草シーフードカレー - ¥1,034</option>
+                </optgroup>
+                <optgroup label="🍖 キーマカレー">
+                  <option value="キーマカレー(902円)">キーマカレー - ¥902</option>
+                  <option value="卵キーマカレー(935円)">卵キーマカレー - ¥935</option>
+                  <option value="茄子キーマカレー(935円)">茄子キーマカレー - ¥935</option>
+                </optgroup>
+              </select>
+            </section>
+          </div>
+
+          <!-- カレー選択（レディース用 2種類） -->
+          <div id="curry-2-choice" class="conditional-section hidden">
+            <section class="form-section">
+              <label class="form-label required">カレーを2種類選択</label>
+              <div class="curry-select-group">
+                <label>1種類目</label>
+                <select id="curry-2a" class="form-select">
+                  <option value="">-- カレーを選んでください --</option>
+                  <optgroup label="🐔 チキンカレー">
+                    <option value="チキンカレー">チキンカレー - ¥880</option>
+                    <option value="チキンマサラカレー">チキンマサラカレー - ¥913</option>
+                    <option value="新鮮な玉ねぎチキンカレー">新鮮な玉ねぎチキンカレー - ¥935</option>
+                    <option value="ほうれん草チキンカレー">ほうれん草チキンカレー - ¥924</option>
+                    <option value="バターチキンカレー">バターチキンカレー - ¥968</option>
+                    <option value="チキンララカレー">チキンララカレー（鶏ひき肉）- ¥968</option>
+                    <option value="ビンディチキンカレー">ビンディチキンカレー - ¥902</option>
+                    <option value="卵カレー">卵カレー - ¥880</option>
+                    <option value="豆チキンカレー">豆チキンカレー - ¥924</option>
+                    <option value="タイグリーンカレー">タイグリーンカレー（激辛）- ¥957</option>
+                  </optgroup>
+                  <optgroup label="🐑 マトンカレー">
+                    <option value="マトンカレー">マトンカレー - ¥880</option>
+                    <option value="マトンマサラカレー">マトンマサラカレー - ¥979</option>
+                    <option value="マトンドピアザカレー">マトンドピアザカレー（新鮮な玉ねぎ）- ¥979</option>
+                    <option value="豆マトンカレー">豆マトンカレー - ¥979</option>
+                    <option value="ほうれん草マトンカレー">ほうれん草マトンカレー - ¥979</option>
+                    <option value="マトンララカレー">マトンララカレー - ¥979</option>
+                  </optgroup>
+                  <optgroup label="🥬 野菜カレー">
+                    <option value="ほうれん草チーズカレー">ほうれん草チーズカレー - ¥968</option>
+                    <option value="ほうれん草豆カレー">ほうれん草豆カレー - ¥902</option>
+                    <option value="ほうれん草キノコカレー">ほうれん草キノコカレー - ¥902</option>
+                    <option value="豆カレー">豆カレー - ¥880</option>
+                    <option value="ミックス野菜カレー">ミックス野菜カレー - ¥902</option>
+                    <option value="茄子マサラカレー">茄子マサラカレー - ¥902</option>
+                    <option value="オクラマサラカレー">オクラマサラカレー - ¥902</option>
+                    <option value="グリンピースとチーズカレー">グリンピースとチーズカレー - ¥999</option>
+                    <option value="チーズバターカレー">チーズバターカレー - ¥990</option>
+                    <option value="ヒヨコマメマサラカレー">ヒヨコマメマサラカレー - ¥913</option>
+                  </optgroup>
+                  <optgroup label="🦐 シーフードカレー">
+                    <option value="エビカレー">エビカレー - ¥990</option>
+                    <option value="エビマサラカレー">エビマサラカレー - ¥1,012</option>
+                    <option value="エビドピアザカレー">エビドピアザカレー - ¥1,034</option>
+                    <option value="ほうれん草と海老カレー">ほうれん草と海老カレー - ¥1,034</option>
+                    <option value="エビバターカレー">エビバターカレー - ¥1,034</option>
+                    <option value="ミックスシーフードカレー">ミックスシーフードカレー - ¥990</option>
+                    <option value="ほうれん草シーフードカレー">ほうれん草シーフードカレー - ¥1,034</option>
+                  </optgroup>
+                  <optgroup label="🍖 キーマカレー">
+                    <option value="キーマカレー">キーマカレー - ¥902</option>
+                    <option value="卵キーマカレー">卵キーマカレー - ¥935</option>
+                    <option value="茄子キーマカレー">茄子キーマカレー - ¥935</option>
+                  </optgroup>
+                </select>
+                <label>2種類目</label>
+                <select id="curry-2b" class="form-select">
+                  <option value="">-- カレーを選んでください --</option>
+                  <optgroup label="🐔 チキンカレー">
+                    <option value="チキンカレー">チキンカレー - ¥880</option>
+                    <option value="チキンマサラカレー">チキンマサラカレー - ¥913</option>
+                    <option value="新鮮な玉ねぎチキンカレー">新鮮な玉ねぎチキンカレー - ¥935</option>
+                    <option value="ほうれん草チキンカレー">ほうれん草チキンカレー - ¥924</option>
+                    <option value="バターチキンカレー">バターチキンカレー - ¥968</option>
+                    <option value="チキンララカレー">チキンララカレー（鶏ひき肉）- ¥968</option>
+                    <option value="ビンディチキンカレー">ビンディチキンカレー - ¥902</option>
+                    <option value="卵カレー">卵カレー - ¥880</option>
+                    <option value="豆チキンカレー">豆チキンカレー - ¥924</option>
+                    <option value="タイグリーンカレー">タイグリーンカレー（激辛）- ¥957</option>
+                  </optgroup>
+                  <optgroup label="🐑 マトンカレー">
+                    <option value="マトンカレー">マトンカレー - ¥880</option>
+                    <option value="マトンマサラカレー">マトンマサラカレー - ¥979</option>
+                    <option value="マトンドピアザカレー">マトンドピアザカレー（新鮮な玉ねぎ）- ¥979</option>
+                    <option value="豆マトンカレー">豆マトンカレー - ¥979</option>
+                    <option value="ほうれん草マトンカレー">ほうれん草マトンカレー - ¥979</option>
+                    <option value="マトンララカレー">マトンララカレー - ¥979</option>
+                  </optgroup>
+                  <optgroup label="🥬 野菜カレー">
+                    <option value="ほうれん草チーズカレー">ほうれん草チーズカレー - ¥968</option>
+                    <option value="ほうれん草豆カレー">ほうれん草豆カレー - ¥902</option>
+                    <option value="ほうれん草キノコカレー">ほうれん草キノコカレー - ¥902</option>
+                    <option value="豆カレー">豆カレー - ¥880</option>
+                    <option value="ミックス野菜カレー">ミックス野菜カレー - ¥902</option>
+                    <option value="茄子マサラカレー">茄子マサラカレー - ¥902</option>
+                    <option value="オクラマサラカレー">オクラマサラカレー - ¥902</option>
+                    <option value="グリンピースとチーズカレー">グリンピースとチーズカレー - ¥999</option>
+                    <option value="チーズバターカレー">チーズバターカレー - ¥990</option>
+                    <option value="ヒヨコマメマサラカレー">ヒヨコマメマサラカレー - ¥913</option>
+                  </optgroup>
+                  <optgroup label="🦐 シーフードカレー">
+                    <option value="エビカレー">エビカレー - ¥990</option>
+                    <option value="エビマサラカレー">エビマサラカレー - ¥1,012</option>
+                    <option value="エビドピアザカレー">エビドピアザカレー - ¥1,034</option>
+                    <option value="ほうれん草と海老カレー">ほうれん草と海老カレー - ¥1,034</option>
+                    <option value="エビバターカレー">エビバターカレー - ¥1,034</option>
+                    <option value="ミックスシーフードカレー">ミックスシーフードカレー - ¥990</option>
+                    <option value="ほうれん草シーフードカレー">ほうれん草シーフードカレー - ¥1,034</option>
+                  </optgroup>
+                  <optgroup label="🍖 キーマカレー">
+                    <option value="キーマカレー">キーマカレー - ¥902</option>
+                    <option value="卵キーマカレー">卵キーマカレー - ¥935</option>
+                    <option value="茄子キーマカレー">茄子キーマカレー - ¥935</option>
+                  </optgroup>
+                </select>
+              </div>
+            </section>
+          </div>
+
+          <!-- ビリヤニ選択 -->
+          <div id="biryani-choice" class="conditional-section hidden">
+            <section class="form-section">
+              <label class="form-label required">ビリヤニの種類を選択</label>
+              <div class="radio-group horizontal">
+                <label class="radio-option">
+                  <input type="radio" name="biryani-type" value="チキンビリヤニ">
+                  <span>チキン</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="biryani-type" value="マトンビリヤニ">
+                  <span>マトン</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="biryani-type" value="エビビリヤニ">
+                  <span>エビ</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="biryani-type" value="野菜ビリヤニ">
+                  <span>野菜</span>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <!-- タンドリーセットのビール選択 -->
+          <div id="tandoori-beer-choice" class="conditional-section hidden">
+            <section class="form-section">
+              <label class="form-label required">ドリンクの種類</label>
+              <div class="radio-group horizontal">
+                <label class="radio-option">
+                  <input type="radio" name="tandoori-beer" value="普通ドリンク(2100円)">
+                  <span>普通ドリンク（2,100円）</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="tandoori-beer" value="生ビール(2200円)">
+                  <span>生ビール（+100円 = 2,200円）</span>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <!-- セットドリンク選択 -->
+          <div id="set-drink-choice" class="conditional-section hidden">
+            <section class="form-section">
+              <label class="form-label required">セットドリンクを選択</label>
+              <p class="form-hint">※セットに1杯付いています。お酒に変更する場合はアルコール価格から-100円</p>
+              <select id="set-drink" class="form-select">
+                <option value="">-- ドリンクを選んでください --</option>
+                <optgroup label="🥤 セットドリンク（込み）">
+                  <option value="ラッシー">ラッシー</option>
+                  <option value="マンゴージュース">マンゴージュース</option>
+                  <option value="マンゴーラッシー">マンゴーラッシー</option>
+                  <option value="オレンジジュース">オレンジジュース</option>
+                  <option value="オレンジラッシー">オレンジラッシー</option>
+                  <option value="ウーロン茶">ウーロン茶</option>
+                  <option value="ローズラッシー">ローズラッシー</option>
+                  <option value="コーラ">コーラ</option>
+                  <option value="ザクロラッシー">ザクロラッシー</option>
+                  <option value="紅茶(ホット/コールド)">紅茶（ホット/コールド）</option>
+                  <option value="コーヒー(ホット/コールド)">コーヒー（ホット/コールド）</option>
+                </optgroup>
+                <optgroup label="🍺 アルコール（差額追加）">
+                  <option value="生ビール(+450円)">生ビール（+450円）</option>
+                  <option value="瓶ビール(+560円)">瓶ビール（+560円）</option>
+                  <option value="キングフィッシャービール(+615円)">キングフィッシャービール（+615円）</option>
+                  <option value="ネパールアイスビール(+615円)">ネパールアイスビール（+615円）</option>
+                  <option value="コロナビール(+560円)">コロナビール（+560円）</option>
+                  <option value="カクテル(+450円)">カクテル各種（+450円）</option>
+                  <option value="サワー(+395円)">サワー各種（+395円）</option>
+                  <option value="グラスワイン(+価格要確認)">グラスワイン</option>
+                  <option value="グラスラム(+450円)">グラスラム（+450円）</option>
+                  <option value="ウイスキーA(+560円)">ウイスキーA（+560円）</option>
+                  <option value="ウイスキーB(+450円)">ウイスキーB（+450円）</option>
+                </optgroup>
+              </select>
+            </section>
+          </div>
+
+          <!-- ナン変更オプション -->
+          <div id="naan-upgrade-choice" class="conditional-section hidden">
+            <section class="form-section">
+              <label class="form-label">ナンを変更しますか？（オプション）</label>
+              <select id="naan-upgrade" class="form-select">
+                <option value="">変更なし（通常ナン）</option>
+                <option value="チーズナン(+275円)">チーズナン（+275円）</option>
+                <option value="ニンニクチーズナン(+297円)">ニンニクチーズナン（+297円）</option>
+                <option value="ニンニクナン(+176円)">ニンニクナン（+176円）</option>
+                <option value="ほうれん草ナン(+165円)">ほうれん草ナン（+165円）</option>
+                <option value="野菜詰め物ナン(+220円)">野菜詰め物ナン（+220円）</option>
+                <option value="キーマナン(+275円)">キーマナン（+275円）</option>
+                <option value="カシミールナン(+286円)">カシミールナン（+286円）</option>
+                <option value="バスマティライス(+275円)">バスマティライス（+275円）</option>
+              </select>
+            </section>
+          </div>
+        </div>
+
+        <!-- アラカルト選択 -->
+        <div id="alacarte-options" class="conditional-section hidden">
+          <section class="form-section">
+            <label class="form-label required">アラカルトメニューを選択</label>
+            <p class="form-hint">※複数選択可。当日時間かかる可能性があります。</p>
+            <div class="checkbox-group alacarte-list">
+              <div class="alacarte-category">
+                <h4>🥗 サラダ</h4>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="グリーンサラダ(580円)"><span>グリーンサラダ - ¥580</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="トマトサラダ(580円)"><span>トマトサラダ - ¥580</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タイ風チキンサラダ(660円)"><span>タイ風チキンサラダ - ¥660</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="わかめサラダ(580円)"><span>わかめサラダ - ¥580</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ミックスシーフードサラダ(682円)"><span>ミックスシーフードサラダ - ¥682</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タイ風エビサラダ(715円)"><span>タイ風エビサラダ - ¥715</span></label>
+              </div>
+              <div class="alacarte-category">
+                <h4>🍲 スープ</h4>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ヒマラヤチキンスープL(880円)"><span>ヒマラヤチキンスープ L - ¥880</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ヒマラヤチキンスープS(600円)"><span>ヒマラヤチキンスープ S - ¥600</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="卵キノココーンスープL(880円)"><span>卵キノココーンスープ L - ¥880</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="卵キノココーンスープS(600円)"><span>卵キノココーンスープ S - ¥600</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タイ風トムヤムエビスープL(990円)"><span>タイ風トムヤムエビスープ L - ¥990</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タイ風トムヤムエビスープS(690円)"><span>タイ風トムヤムエビスープ S - ¥690</span></label>
+              </div>
+              <div class="alacarte-category">
+                <h4>🍛 料理</h4>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="パパド(220円)"><span>パパド - ¥220</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="マサラパパド(385円)"><span>マサラパパド - ¥385</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チキンパコラ(700円)"><span>チキンパコラ - ¥700</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="野菜パコラ(700円)"><span>野菜パコラ - ¥700</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ソテーキャベツ(550円)"><span>ソテーキャベツ - ¥550</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チャナチャット(700円)"><span>チャナチャット（ひよこ豆サラダ）- ¥700</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ニンニクいためブロッコリー(700円)"><span>ニンニクいためブロッコリー - ¥700</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チリチキン(880円)"><span>チリチキン - ¥880</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="アルーコアチャール(660円)"><span>アルーコアチャール（じゃがいも）- ¥660</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チキン焼きそば(815円)"><span>チキン焼きそば - ¥815</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="蒸し鶏モモ(880円)"><span>蒸し鶏モモ - ¥880</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ニンニクいためチキン(935円)"><span>ニンニクいためチキン - ¥935</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="野菜サモサ2個(660円)"><span>野菜サモサ 2個 - ¥660</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="砂肝いため(696円)"><span>砂肝いため - ¥696</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ワイワイシャデック(550円)"><span>ワイワイシャデック（麺サラダ）- ¥550</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="バッタマチャシャデック(696円)"><span>バッタマチャシャデック - ¥696</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="フライじゃがいも(432円)"><span>フライじゃがいも - ¥432</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="卵オムレツ(513円)"><span>卵オムレツ - ¥513</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チキンチョイエラ(687円)"><span>チキンチョイエラ - ¥687</span></label>
+              </div>
+              <div class="alacarte-category">
+                <h4>🍗 タンドリー</h4>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タンドリーチキン1個(330円)"><span>タンドリーチキン 1個 - ¥330</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タンドリーチキン2個(660円)"><span>タンドリーチキン 2個 - ¥660</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タンドリーチキン4個(1320円)"><span>タンドリーチキン 4個 - ¥1,320</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チキンティッカ1個(330円)"><span>チキンティッカ 1個 - ¥330</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チキンティッカ2個(500円)"><span>チキンティッカ 2個 - ¥500</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チキンティッカ4個(1000円)"><span>チキンティッカ 4個 - ¥1,000</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="シークカバブ1個(330円)"><span>シークカバブ 1個 - ¥330</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="シークカバブ3個(990円)"><span>シークカバブ 3個 - ¥990</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ニンニクカバブ1個(330円)"><span>ニンニクカバブ 1個 - ¥330</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タンドリー焼きエビ1個(330円)"><span>タンドリー焼きエビ 1個 - ¥330</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タンドリー3in1シズラー(1000円)"><span>タンドリー3in1シズラー - ¥1,000</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="タンドリー焼き肉盛り合わせ(1650円)"><span>タンドリー焼き肉盛り合わせ - ¥1,650</span></label>
+              </div>
+              <div class="alacarte-category">
+                <h4>🍞 ナン・ライス</h4>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ナン(350円)"><span>ナン - ¥350</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チーズナン(570円)"><span>チーズナン - ¥570</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ニンニクナン(550円)"><span>ニンニクナン - ¥550</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ほうれん草ナン(385円)"><span>ほうれん草ナン - ¥385</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="キーマナン(627円)"><span>キーマナン - ¥627</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="野菜詰め物ナン(506円)"><span>野菜詰め物ナン - ¥506</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="カシミールナン(660円)"><span>カシミールナン - ¥660</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ニンニクチーズナン(660円)"><span>ニンニクチーズナン - ¥660</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="ライス(385円)"><span>ライス - ¥385</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="バスマティライス(660円)"><span>バスマティライス - ¥660</span></label>
+              </div>
+              <div class="alacarte-category">
+                <h4>🍚 ビリヤニ（単品）</h4>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="チキンビリヤニ(1110円)"><span>チキンビリヤニ - ¥1,110</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="マトンビリヤニ(1150円)"><span>マトンビリヤニ - ¥1,150</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="エビビリヤニ(1200円)"><span>エビビリヤニ - ¥1,200</span></label>
+                <label class="checkbox-option"><input type="checkbox" name="alacarte" value="野菜ビリヤニ(1045円)"><span>野菜ビリヤニ - ¥1,045</span></label>
+              </div>
+            </div>
+          </section>
+          <section class="form-section">
+            <label class="form-label required">ドリンクを選択</label>
+            <select id="alacarte-drink" class="form-select">
+              <option value="">-- ドリンクを選んでください --</option>
+              <optgroup label="🥤 ソフトドリンク">
+                <option value="ラッシー(330円)">ラッシー - ¥330</option>
+                <option value="マンゴーラッシー(550円)">マンゴーラッシー - ¥550</option>
+                <option value="オレンジラッシー(550円)">オレンジラッシー - ¥550</option>
+                <option value="ローズラッシー(550円)">ローズラッシー - ¥550</option>
+                <option value="ザクロラッシー(550円)">ザクロラッシー - ¥550</option>
+                <option value="紅茶/コーヒー(440円)">紅茶/コーヒー - ¥440</option>
+                <option value="マンゴージュース(550円)">マンゴージュース - ¥550</option>
+                <option value="オレンジジュース(440円)">オレンジジュース - ¥440</option>
+                <option value="ウーロン茶(275円)">ウーロン茶 - ¥275</option>
+                <option value="コーラ(330円)">コーラ - ¥330</option>
+              </optgroup>
+              <optgroup label="🍺 ビール">
+                <option value="生ビール(550円)">生ビール - ¥550</option>
+                <option value="瓶ビール(660円)">瓶ビール - ¥660</option>
+                <option value="キングフィッシャービール(715円)">キングフィッシャービール - ¥715</option>
+                <option value="ネパールアイスビール(715円)">ネパールアイスビール - ¥715</option>
+                <option value="コロナビール(660円)">コロナビール - ¥660</option>
+                <option value="ノンアルコールビール(440円)">ノンアルコールビール - ¥440</option>
+              </optgroup>
+              <optgroup label="🍸 カクテル・サワー">
+                <option value="カクテル(550円)">カクテル各種 - ¥550</option>
+                <option value="サワー(495円)">サワー各種 - ¥495</option>
+              </optgroup>
+              <optgroup label="🥃 その他アルコール">
+                <option value="グラスラム(550円)">グラスラム - ¥550</option>
+                <option value="ウイスキーA(660円)">ウイスキーA - ¥660</option>
+                <option value="ウイスキーB(550円)">ウイスキーB - ¥550</option>
+              </optgroup>
+            </select>
+          </section>
+        </div>
+
+        <!-- 子どもセット -->
+        <div id="kids-options" class="conditional-section hidden">
+          <section class="form-section">
+            <label class="form-label">子どもセット - 715円</label>
+            <p class="form-hint">小学生までのお子様限定</p>
+            <div class="kids-set-info">
+              <p>セット内容：ナン、ライス、バニラアイス、ドリンク付き</p>
+            </div>
+          </section>
+          <section class="form-section">
+            <label class="form-label required">カレーを選択</label>
+            <div class="radio-group horizontal">
+              <label class="radio-option">
+                <input type="radio" name="kids-curry" value="バターチキンカレー（マイルド）">
+                <span>バターチキンカレー（マイルド）</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="kids-curry" value="卵カレー">
+                <span>卵カレー</span>
+              </label>
+            </div>
+          </section>
+          <section class="form-section">
+            <label class="form-label required">ドリンクを選択</label>
+            <div class="radio-group horizontal">
+              <label class="radio-option">
+                <input type="radio" name="kids-drink" value="マンゴージュース">
+                <span>マンゴージュース</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="kids-drink" value="オレンジジュース">
+                <span>オレンジジュース</span>
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <!-- ドリンクのみ -->
+        <div id="drink-only-options" class="conditional-section hidden">
+          <section class="form-section">
+            <label class="form-label required">ドリンクを選択（ワンドリンク必須）</label>
+            <select id="drink-only" class="form-select">
+              <option value="">-- ドリンクを選んでください --</option>
+              <optgroup label="🥤 ソフトドリンク">
+                <option value="ラッシー(330円)">ラッシー - ¥330</option>
+                <option value="マンゴーラッシー(550円)">マンゴーラッシー - ¥550</option>
+                <option value="オレンジラッシー(550円)">オレンジラッシー - ¥550</option>
+                <option value="ローズラッシー(550円)">ローズラッシー - ¥550</option>
+                <option value="ザクロラッシー(550円)">ザクロラッシー - ¥550</option>
+                <option value="紅茶/コーヒー(440円)">紅茶/コーヒー - ¥440</option>
+                <option value="マンゴージュース(550円)">マンゴージュース - ¥550</option>
+                <option value="オレンジジュース(440円)">オレンジジュース - ¥440</option>
+                <option value="ウーロン茶(275円)">ウーロン茶 - ¥275</option>
+                <option value="コーラ(330円)">コーラ - ¥330</option>
+              </optgroup>
+              <optgroup label="🍺 ビール">
+                <option value="生ビール(550円)">生ビール - ¥550</option>
+                <option value="瓶ビール(660円)">瓶ビール - ¥660</option>
+                <option value="キングフィッシャービール(715円)">キングフィッシャービール - ¥715</option>
+                <option value="ネパールアイスビール(715円)">ネパールアイスビール - ¥715</option>
+                <option value="コロナビール(660円)">コロナビール - ¥660</option>
+                <option value="ノンアルコールビール(440円)">ノンアルコールビール - ¥440</option>
+              </optgroup>
+              <optgroup label="🍸 カクテル・サワー">
+                <option value="カクテル(550円)">カクテル各種 - ¥550</option>
+                <option value="サワー(495円)">サワー各種 - ¥495</option>
+              </optgroup>
+              <optgroup label="🥃 その他アルコール">
+                <option value="グラスラム(550円)">グラスラム - ¥550</option>
+                <option value="ウイスキーA(660円)">ウイスキーA - ¥660</option>
+                <option value="ウイスキーB(550円)">ウイスキーB - ¥550</option>
+              </optgroup>
+            </select>
+          </section>
+        </div>
+
+        <!-- 備考 -->
+        <section class="form-section">
+          <label class="form-label">備考・アレルギー等</label>
+          <textarea id="notes" placeholder="アレルギーや特別なリクエストがあればご記入ください"></textarea>
+        </section>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="submit-btn">注文を送信</button>
+          <button type="reset" class="btn-secondary">リセット</button>
+        </div>
+      </form>
+    </main>
+
+    <!-- 注文確認画面 -->
+    <div id="confirm-screen" class="confirm-screen hidden">
+      <div class="confirm-box">
+        <div class="confirm-icon">📋</div>
+        <h2>注文内容の確認</h2>
+        <p class="confirm-subtitle">以下の内容でよろしいですか？</p>
+        <div id="confirm-details" class="confirm-details"></div>
+        <div class="confirm-actions">
+          <button id="confirm-submit" class="btn-primary">この内容で注文する</button>
+          <button id="confirm-back" class="btn-secondary">修正する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 送信完了モーダル -->
+    <div id="success-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-icon">✅</div>
+        <h3>注文を受け付けました！</h3>
+        <p id="modal-summary"></p>
+        <button id="modal-close" class="btn-primary">閉じる</button>
+      </div>
+    </div>
+
+    <!-- 接続エラーモーダル -->
+    <div id="error-modal" class="modal hidden">
+      <div class="modal-content error">
+        <div class="modal-icon">⚠️</div>
+        <h3>接続エラー</h3>
+        <p>データベースに接続できません。ネットワーク接続を確認してください。</p>
+        <button id="error-close" class="btn-primary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# メニュー画像（参照用なのでアップロード不要）
+IMG_*.JPG
+
+# macOS
+.DS_Store
+
+# Google Apps Script（Googleフォーム用、GitHub Pagesでは不要）
+*.gs
+

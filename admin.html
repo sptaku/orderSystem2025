@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理画面 - 忘年会オーダー</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <style>
+    .password-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+    }
+    .password-box {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    .password-box h2 {
+      margin-bottom: 20px;
+      color: var(--text-primary);
+    }
+    .password-box input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 16px;
+      text-align: center;
+      letter-spacing: 4px;
+    }
+    .password-box input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .password-error {
+      color: var(--danger);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .password-error.show {
+      display: block;
+    }
+    .admin-content {
+      display: none;
+    }
+    .admin-content.show {
+      display: block;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    
+    /* 検索ボックス */
+    .search-box {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .search-box label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .search-input-wrapper {
+      display: flex;
+      gap: 12px;
+    }
+    .search-input-wrapper input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .search-input-wrapper input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .search-input-wrapper button {
+      padding: 12px 20px;
+      background: #f5f5f5;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .search-input-wrapper button:hover {
+      background: #e0e0e0;
+    }
+    .search-result-info {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .search-result-info.has-filter {
+      color: var(--primary);
+      font-weight: 500;
+    }
+    
+    
+    /* 注文カードのハイライト */
+    .order-item.highlight {
+      border-color: var(--primary);
+      background: #fff8e1;
+      animation: highlightPulse 0.5s ease;
+    }
+    @keyframes highlightPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+    
+    /* 削除確認モーダル */
+    .delete-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .delete-modal.hidden {
+      display: none;
+    }
+    .delete-modal-content {
+      background: white;
+      padding: 32px;
+      border-radius: var(--border-radius);
+      max-width: 450px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .delete-modal-content h3 {
+      color: #c62828;
+      margin-bottom: 16px;
+      font-size: 1.3rem;
+    }
+    .delete-modal-content .delete-target-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .delete-modal-content .delete-target-info {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    .delete-modal-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .delete-modal-actions button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-confirm-delete {
+      background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
+      color: white;
+    }
+    .btn-cancel-delete {
+      background: #f5f5f5;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔐 管理画面</h1>
+      <p class="subtitle">忘年会オーダー管理</p>
+    </header>
+
+    <!-- パスワード入力画面 -->
+    <div id="password-screen" class="password-screen">
+      <div class="password-box">
+        <h2>🔒 パスワードを入力</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">管理者専用ページです</p>
+        <input type="password" id="password-input" placeholder="パスワード" autofocus>
+        <p id="password-error" class="password-error">パスワードが違います</p>
+        <button id="password-submit" class="btn-primary" style="width: 100%;">ログイン</button>
+      </div>
+    </div>
+
+    <!-- 管理画面コンテンツ -->
+    <main id="admin-content" class="admin-content">
+      <a href="index.html" class="back-link">← 注文フォームに戻る</a>
+      
+      <div class="admin-header">
+        <h2>注文一覧</h2>
+        <div class="admin-actions">
+          <button id="export-csv" class="btn-export">📥 CSVダウンロード</button>
+          <button id="logout-btn" class="btn-secondary" style="padding: 12px 20px;">🚪 ログアウト</button>
+        </div>
+      </div>
+      
+      <div class="order-stats">
+        <div class="stat-card">
+          <span class="stat-number" id="total-orders">0</span>
+          <span class="stat-label">総注文数</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="set-count">0</span>
+          <span class="stat-label">セット</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="alacarte-count">0</span>
+          <span class="stat-label">アラカルト</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="kids-count">0</span>
+          <span class="stat-label">子ども</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="drink-count">0</span>
+          <span class="stat-label">ドリンクのみ</span>
+        </div>
+      </div>
+      
+      <!-- 検索ボックス -->
+      <div class="search-box">
+        <label>🔍 注文者名で検索</label>
+        <div class="search-input-wrapper">
+          <input type="text" id="search-input" placeholder="名前を入力...">
+          <button id="search-clear">クリア</button>
+        </div>
+        <p id="search-result-info" class="search-result-info"></p>
+      </div>
+      
+      <div id="orders-list" class="orders-list">
+        <div class="loading">読み込み中...</div>
+      </div>
+    </main>
+    
+    <!-- 削除確認モーダル -->
+    <div id="delete-modal" class="delete-modal hidden">
+      <div class="delete-modal-content">
+        <h3>⚠️ 注文を削除しますか？</h3>
+        <p class="delete-target-name" id="delete-target-name"></p>
+        <p class="delete-target-info" id="delete-target-info"></p>
+        <div class="delete-modal-actions">
+          <button id="btn-confirm-delete" class="btn-confirm-delete">削除する</button>
+          <button id="btn-cancel-delete" class="btn-cancel-delete">キャンセル</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    // ====== パスワード設定（SHA-256ハッシュ化済み） ======
+    const PASSWORD_HASH = '582327d4c2c70c6543e356dff8d99e2a98d15a2ecc0b2a2444076e54d73e41fd';
+    
+    async function sha256(text) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    
+    // ====== セッション管理 ======
+    const SESSION_KEY = 'admin_authenticated';
+    const SESSION_HASH_KEY = 'admin_session_hash';
+    
+    function isAuthenticated() {
+      const sessionHash = sessionStorage.getItem(SESSION_HASH_KEY);
+      return sessionStorage.getItem(SESSION_KEY) === 'true' && sessionHash === PASSWORD_HASH;
+    }
+    
+    function setAuthenticated(value) {
+      if (value) {
+        sessionStorage.setItem(SESSION_KEY, 'true');
+        sessionStorage.setItem(SESSION_HASH_KEY, PASSWORD_HASH);
+      } else {
+        sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_HASH_KEY);
+      }
+    }
+    
+    // ====== 全体で使う変数 ======
+    let allOrders = [];
+    let currentSearchTerm = '';
+    let deleteTargetId = null;
+    
+    // ====== DOM Elements ======
+    const passwordScreen = document.getElementById('password-screen');
+    const adminContent = document.getElementById('admin-content');
+    const passwordInput = document.getElementById('password-input');
+    const passwordSubmit = document.getElementById('password-submit');
+    const passwordError = document.getElementById('password-error');
+    const logoutBtn = document.getElementById('logout-btn');
+    const searchInput = document.getElementById('search-input');
+    const searchClear = document.getElementById('search-clear');
+    const searchResultInfo = document.getElementById('search-result-info');
+    const deleteModal = document.getElementById('delete-modal');
+    const deleteTargetName = document.getElementById('delete-target-name');
+    const deleteTargetInfo = document.getElementById('delete-target-info');
+    const btnConfirmDelete = document.getElementById('btn-confirm-delete');
+    const btnCancelDelete = document.getElementById('btn-cancel-delete');
+    
+    // ====== パスワード認証 ======
+    async function attemptLogin() {
+      const input = passwordInput.value;
+      const inputHash = await sha256(input);
+      
+      if (inputHash === PASSWORD_HASH) {
+        setAuthenticated(true);
+        showAdminContent();
+      } else {
+        passwordError.classList.add('show');
+        passwordInput.value = '';
+        passwordInput.focus();
+      }
+    }
+    
+    passwordSubmit.addEventListener('click', attemptLogin);
+    passwordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') attemptLogin();
+    });
+    passwordInput.addEventListener('input', () => {
+      passwordError.classList.remove('show');
+    });
+    
+    logoutBtn.addEventListener('click', () => {
+      setAuthenticated(false);
+      location.reload();
+    });
+    
+    function showAdminContent() {
+      passwordScreen.style.display = 'none';
+      adminContent.classList.add('show');
+      initFirebase();
+    }
+    
+    // ====== 検索機能 ======
+    searchInput.addEventListener('input', () => {
+      currentSearchTerm = searchInput.value.trim().toLowerCase();
+      renderFilteredOrders();
+    });
+    
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      currentSearchTerm = '';
+      renderFilteredOrders();
+    });
+    
+    function renderFilteredOrders() {
+      let filtered = allOrders;
+      
+      if (currentSearchTerm) {
+        filtered = allOrders.filter(order => 
+          order.name && order.name.toLowerCase().includes(currentSearchTerm)
+        );
+        searchResultInfo.textContent = `「${searchInput.value}」で ${filtered.length} 件見つかりました`;
+        searchResultInfo.classList.add('has-filter');
+      } else {
+        searchResultInfo.textContent = '';
+        searchResultInfo.classList.remove('has-filter');
+      }
+      
+      renderOrdersListFiltered(filtered);
+    }
+    
+    // ====== 削除モーダル ======
+    function showDeleteModal(order) {
+      deleteTargetId = order.id;
+      deleteTargetName.textContent = order.name;
+      deleteTargetInfo.textContent = `${getOrderTypeName(order.orderType)} - ${order.timestamp || ''}`;
+      deleteModal.classList.remove('hidden');
+    }
+    
+    function hideDeleteModal() {
+      deleteModal.classList.add('hidden');
+      deleteTargetId = null;
+    }
+    
+    btnConfirmDelete.addEventListener('click', async () => {
+      if (deleteTargetId) {
+        await deleteOrder(deleteTargetId);
+        hideDeleteModal();
+      }
+    });
+    
+    btnCancelDelete.addEventListener('click', hideDeleteModal);
+    
+    deleteModal.addEventListener('click', (e) => {
+      if (e.target === deleteModal) hideDeleteModal();
+    });
+    
+    // ====== Firebase ======
+    let db;
+    let ordersRef;
+    let isFirebaseReady = false;
+    
+    function initFirebase() {
+      try {
+        if (typeof firebaseConfig === 'undefined' || firebaseConfig.apiKey === 'YOUR_API_KEY') {
+          console.warn('Firebase未設定: ローカルストレージモードで動作します');
+          isFirebaseReady = false;
+          updateOrdersData(ordersToObject(getOrdersLocal()));
+          return;
+        }
+        
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.database();
+        ordersRef = db.ref('orders');
+        isFirebaseReady = true;
+        
+        ordersRef.on('value', (snapshot) => {
+          updateOrdersData(snapshot.val());
+        });
+        
+      } catch (error) {
+        console.error('Firebase初期化エラー:', error);
+        isFirebaseReady = false;
+        updateOrdersData(ordersToObject(getOrdersLocal()));
+      }
+    }
+    
+    function updateOrdersData(ordersObj) {
+      allOrders = objectToOrders(ordersObj).sort((a, b) => (b.timestampMs || 0) - (a.timestampMs || 0));
+      updateStats();
+      renderFilteredOrders();
+    }
+    
+    function updateStats() {
+      document.getElementById('total-orders').textContent = allOrders.length;
+      document.getElementById('set-count').textContent = allOrders.filter(o => o.orderType === 'set').length;
+      document.getElementById('alacarte-count').textContent = allOrders.filter(o => o.orderType === 'alacarte').length;
+      document.getElementById('kids-count').textContent = allOrders.filter(o => o.orderType === 'kids').length;
+      document.getElementById('drink-count').textContent = allOrders.filter(o => o.orderType === 'drink-only').length;
+    }
+    
+    // ====== ローカルストレージ ======
+    const STORAGE_KEY = 'bonenkai_orders';
+    
+    function getOrdersLocal() {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    }
+    
+    function ordersToObject(ordersArray) {
+      const obj = {};
+      ordersArray.forEach(order => {
+        obj[order.id] = order;
+      });
+      return obj;
+    }
+    
+    function objectToOrders(ordersObj) {
+      if (!ordersObj) return [];
+      return Object.keys(ordersObj).map(key => ({
+        ...ordersObj[key],
+        id: key
+      }));
+    }
+    
+    // ====== 注文削除 ======
+    async function deleteOrder(id) {
+      if (isFirebaseReady) {
+        try {
+          await ordersRef.child(id).remove();
+        } catch (error) {
+          console.error('Firebase削除エラー:', error);
+        }
+      } else {
+        const orders = getOrdersLocal().filter(o => o.id !== id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+        updateOrdersData(ordersToObject(orders));
+      }
+    }
+    
+    // ====== 注文一覧表示 ======
+    function renderOrdersListFiltered(orders) {
+      const ordersList = document.getElementById('orders-list');
+      
+      if (orders.length === 0) {
+        if (currentSearchTerm) {
+          ordersList.innerHTML = '<p class="no-orders">検索結果が見つかりません</p>';
+        } else {
+          ordersList.innerHTML = '<p class="no-orders">注文はまだありません</p>';
+        }
+        return;
+      }
+      
+      ordersList.innerHTML = orders.map(order => createOrderHTML(order)).join('');
+      
+      // 削除ボタンのイベント
+      document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const order = allOrders.find(o => o.id === id);
+          if (order) {
+            showDeleteModal(order);
+          }
+        });
+      });
+    }
+    
+    function getOrderTypeName(orderType) {
+      const names = {
+        'set': 'セットメニュー',
+        'alacarte': 'アラカルト',
+        'kids': '子どもセット',
+        'drink-only': 'ドリンクのみ'
+      };
+      return names[orderType] || orderType;
+    }
+    
+    function escapeHTML(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+    
+    function createOrderHTML(order) {
+      let details = '';
+      
+      if (order.orderType === 'set') {
+        details += `<p><strong>セット:</strong> ${escapeHTML(order.setType || '')}</p>`;
+        if (order.naanRice) details += `<p><strong>ナン/ライス:</strong> ${escapeHTML(order.naanRice)}</p>`;
+        if (order.curry) details += `<p><strong>カレー:</strong> ${escapeHTML(order.curry)}</p>`;
+        if (order.biryani) details += `<p><strong>ビリヤニ:</strong> ${escapeHTML(order.biryani)}</p>`;
+        if (order.drink) details += `<p><strong>ドリンク:</strong> ${escapeHTML(order.drink)}</p>`;
+        if (order.naanUpgrade && order.naanUpgrade !== '変更なし') {
+          details += `<p><strong>ナン変更:</strong> ${escapeHTML(order.naanUpgrade)}</p>`;
+        }
+      } else if (order.orderType === 'alacarte') {
+        const items = Array.isArray(order.items) ? order.items.join(', ') : order.items;
+        details += `<p><strong>メニュー:</strong> ${escapeHTML(items)}</p>`;
+        details += `<p><strong>ドリンク:</strong> ${escapeHTML(order.drink || '')}</p>`;
+      } else if (order.orderType === 'kids') {
+        details += `<p><strong>カレー:</strong> ${escapeHTML(order.curry || '')}</p>`;
+        details += `<p><strong>ドリンク:</strong> ${escapeHTML(order.drink || '')}</p>`;
+      } else if (order.orderType === 'drink-only') {
+        details += `<p><strong>ドリンク:</strong> ${escapeHTML(order.drink || '')}</p>`;
+      }
+      
+      if (order.notes) {
+        details += `<p><strong>備考:</strong> ${escapeHTML(order.notes)}</p>`;
+      }
+      
+      const isHighlight = currentSearchTerm && order.name.toLowerCase().includes(currentSearchTerm);
+      
+      return `
+        <div class="order-item ${isHighlight ? 'highlight' : ''}">
+          <div class="order-header">
+            <span class="order-name">${escapeHTML(order.name)}</span>
+            <span class="order-type-badge ${order.orderType}">${getOrderTypeName(order.orderType)}</span>
+          </div>
+          <div class="order-details">
+            ${details}
+          </div>
+          <div class="order-time">注文日時: ${order.timestamp || ''}</div>
+          <div class="order-actions">
+            <button class="btn-delete" data-id="${order.id}">🗑️ 削除</button>
+          </div>
+        </div>
+      `;
+    }
+    
+    // ====== CSV Export ======
+    document.getElementById('export-csv').addEventListener('click', async () => {
+      let orders;
+      
+      if (isFirebaseReady) {
+        try {
+          const snapshot = await ordersRef.once('value');
+          orders = objectToOrders(snapshot.val());
+        } catch (error) {
+          console.error('データ取得エラー:', error);
+          alert('データの取得に失敗しました');
+          return;
+        }
+      } else {
+        orders = getOrdersLocal();
+      }
+      
+      if (orders.length === 0) {
+        alert('エクスポートする注文がありません');
+        return;
+      }
+      
+      const csvContent = generateCSV(orders);
+      downloadCSV(csvContent, `忘年会注文_${getDateString()}.csv`);
+    });
+    
+    function generateCSV(orders) {
+      const headers = ['注文日時', '名前', 'オーダータイプ', 'セット名', 'ナン/ライス', 'カレー', 'ビリヤニ', 'ドリンク', 'ナン変更', 'アラカルトメニュー', '備考'];
+      
+      const rows = orders.map(order => {
+        const items = Array.isArray(order.items) ? order.items.join('; ') : (order.items || '');
+        return [
+          order.timestamp || '',
+          order.name || '',
+          getOrderTypeName(order.orderType),
+          order.setType || '',
+          order.naanRice || '',
+          order.curry || '',
+          order.biryani || '',
+          order.drink || '',
+          order.naanUpgrade || '',
+          items,
+          order.notes || ''
+        ].map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
+      });
+      
+      return '\uFEFF' + [headers.join(','), ...rows].join('\n');
+    }
+    
+    function downloadCSV(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+    
+    function getDateString() {
+      const now = new Date();
+      return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    }
+    
+    // ====== 初期化 ======
+    document.addEventListener('DOMContentLoaded', () => {
+      if (isAuthenticated()) {
+        showAdminContent();
+      }
+    });
+  </script>
+</body>
+</html>
