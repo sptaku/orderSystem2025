@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Summary - 忘年会オーダー</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --primary: #e65100;
+      --text-primary: #333;
+      --text-secondary: #666;
+      --bg: #fff;
+      --border: #e0e0e0;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 3px solid var(--primary);
+    }
+    
+    .header h1 {
+      font-size: 1.8rem;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    
+    .header .subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    
+    .controls button {
+      padding: 10px 20px;
+      border: 2px solid var(--primary);
+      background: white;
+      color: var(--primary);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .controls button:hover {
+      background: #fff3e0;
+    }
+    
+    .controls button.active {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-pdf {
+      background: #2e7d32 !important;
+      border-color: #2e7d32 !important;
+      color: white !important;
+    }
+    
+    .btn-pdf:hover {
+      background: #1b5e20 !important;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+    
+    .summary-total {
+      background: #fff8e1;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+    
+    .summary-section {
+      margin-bottom: 24px;
+    }
+    
+    .summary-section h3 {
+      background: var(--primary);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+    
+    .summary-section ul {
+      list-style: none;
+    }
+    
+    .summary-section li {
+      padding: 8px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .summary-section li:last-child {
+      border-bottom: none;
+    }
+    
+    .item-name {
+      font-weight: 500;
+    }
+    
+    .item-count {
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .summary-detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    
+    .summary-detail-table th,
+    .summary-detail-table td {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    
+    .summary-detail-table th {
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+    
+    .summary-detail-table tr:nth-child(even) {
+      background: #fafafa;
+    }
+    
+    /* 印刷/PDF用スタイル */
+    @media print {
+      body {
+        padding: 0;
+        font-size: 11pt;
+      }
+      
+      .controls {
+        display: none !important;
+      }
+      
+      .header {
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+      }
+      
+      .summary-section h3 {
+        background: #333 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .summary-total {
+        background: #f5f5f5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .summary-section {
+        page-break-inside: avoid;
+      }
+      
+      .summary-detail-table {
+        font-size: 9pt;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 id="page-title">🍛 忘年会オーダーまとめ<br>Year-End Party Order Summary</h1>
+      <p class="subtitle" id="page-subtitle">Order Summary for Restaurant</p>
+    </div>
+    
+    <div class="controls">
+      <button id="lang-both" class="active">日本語/English</button>
+      <button id="lang-ja">日本語のみ</button>
+      <button id="lang-en">English Only</button>
+      <button id="btn-pdf" class="btn-pdf">📄 PDF出力 / Export PDF</button>
+    </div>
+    
+    <div id="summary-content">
+      <div class="loading">読み込み中... / Loading...</div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    // 言語設定
+    let currentLang = 'both'; // 'both', 'ja', 'en'
+    let allOrders = [];
+    
+    // メニュー翻訳マップ
+    const menuTranslations = {
+      // セット名
+      'サンティセット': 'Shanti Set',
+      'レディースセット（男性も可）': 'Ladies Set',
+      'レディースセット': 'Ladies Set',
+      'タンドリー焼き肉とカレーのセット': 'Tandoori & Curry Set',
+      'ビリヤニセット': 'Biryani Set',
+      // カレー（チキン）
+      'チキンカレー': 'Chicken Curry',
+      'チキンマサラカレー': 'Chicken Masala Curry',
+      '新鮮な玉ねぎチキンカレー': 'Fresh Onion Chicken Curry',
+      'ほうれん草チキンカレー': 'Spinach Chicken Curry',
+      'バターチキンカレー': 'Butter Chicken Curry',
+      'チキンララカレー': 'Chicken Lala Curry',
+      'ビンディチキンカレー': 'Bhindi Chicken Curry',
+      '卵カレー': 'Egg Curry',
+      '豆チキンカレー': 'Dal Chicken Curry',
+      'タイグリーンカレー': 'Thai Green Curry',
+      // カレー（マトン）
+      'マトンカレー': 'Mutton Curry',
+      'マトンマサラカレー': 'Mutton Masala Curry',
+      'マトンドピアザカレー': 'Mutton Do Pyaza Curry',
+      '豆マトンカレー': 'Dal Mutton Curry',
+      'ほうれん草マトンカレー': 'Spinach Mutton Curry',
+      'マトンララカレー': 'Mutton Lala Curry',
+      // カレー（野菜）
+      'ほうれん草チーズカレー': 'Spinach Cheese Curry',
+      'ほうれん草豆カレー': 'Spinach Dal Curry',
+      'ほうれん草キノコカレー': 'Spinach Mushroom Curry',
+      '豆カレー': 'Dal Curry',
+      'ミックス野菜カレー': 'Mixed Vegetable Curry',
+      '茄子マサラカレー': 'Eggplant Masala Curry',
+      'オクラマサラカレー': 'Okra Masala Curry',
+      'グリンピースとチーズカレー': 'Green Peas & Cheese Curry',
+      'チーズバターカレー': 'Cheese Butter Curry',
+      'ヒヨコマメマサラカレー': 'Chickpea Masala Curry',
+      // カレー（シーフード）
+      'エビカレー': 'Shrimp Curry',
+      'エビマサラカレー': 'Shrimp Masala Curry',
+      'エビドピアザカレー': 'Shrimp Do Pyaza Curry',
+      'ほうれん草と海老カレー': 'Spinach Shrimp Curry',
+      'エビバターカレー': 'Shrimp Butter Curry',
+      'ミックスシーフードカレー': 'Mixed Seafood Curry',
+      'ほうれん草シーフードカレー': 'Spinach Seafood Curry',
+      // カレー（キーマ）
+      'キーマカレー': 'Keema Curry',
+      '卵キーマカレー': 'Egg Keema Curry',
+      '茄子キーマカレー': 'Eggplant Keema Curry',
+      // ビリヤニ
+      'チキンビリヤニ': 'Chicken Biryani',
+      'マトンビリヤニ': 'Mutton Biryani',
+      'エビビリヤニ': 'Shrimp Biryani',
+      '野菜ビリヤニ': 'Vegetable Biryani',
+      // ドリンク
+      'ラッシー': 'Lassi',
+      'マンゴージュース': 'Mango Juice',
+      'マンゴーラッシー': 'Mango Lassi',
+      'オレンジジュース': 'Orange Juice',
+      'オレンジラッシー': 'Orange Lassi',
+      'ウーロン茶': 'Oolong Tea',
+      'ローズラッシー': 'Rose Lassi',
+      'コーラ': 'Cola',
+      'ザクロラッシー': 'Pomegranate Lassi',
+      '紅茶(ホット/コールド)': 'Tea (Hot/Cold)',
+      'コーヒー(ホット/コールド)': 'Coffee (Hot/Cold)',
+      '紅茶/コーヒー': 'Tea/Coffee',
+      '生ビール': 'Draft Beer',
+      '瓶ビール': 'Bottled Beer',
+      'キングフィッシャービール': 'Kingfisher Beer',
+      'ネパールアイスビール': 'Nepal Ice Beer',
+      'コロナビール': 'Corona Beer',
+      'ノンアルコールビール': 'Non-Alcoholic Beer',
+      'カクテル': 'Cocktail',
+      'サワー': 'Sour',
+      'グラスワイン': 'Glass Wine',
+      'グラスラム': 'Glass Rum',
+      'ウイスキーA': 'Whiskey A',
+      'ウイスキーB': 'Whiskey B',
+      // ナン
+      'ナン': 'Naan',
+      'ライス': 'Rice',
+      'チーズナン': 'Cheese Naan',
+      'ニンニクチーズナン': 'Garlic Cheese Naan',
+      'ニンニクナン': 'Garlic Naan',
+      'ほうれん草ナン': 'Spinach Naan',
+      '野菜詰め物ナン': 'Vegetable Stuffed Naan',
+      'キーマナン': 'Keema Naan',
+      'カシミールナン': 'Kashmiri Naan',
+      'バスマティライス': 'Basmati Rice',
+      // アラカルト
+      'グリーンサラダ': 'Green Salad',
+      'トマトサラダ': 'Tomato Salad',
+      'タイ風チキンサラダ': 'Thai Chicken Salad',
+      'わかめサラダ': 'Seaweed Salad',
+      'ミックスシーフードサラダ': 'Mixed Seafood Salad',
+      'タイ風エビサラダ': 'Thai Shrimp Salad',
+      'パパド': 'Papad',
+      'マサラパパド': 'Masala Papad',
+      'チキンパコラ': 'Chicken Pakora',
+      '野菜パコラ': 'Vegetable Pakora',
+      'タンドリーチキン': 'Tandoori Chicken',
+      'チキンティッカ': 'Chicken Tikka',
+      'シークカバブ': 'Seekh Kebab',
+      '子どもセット': 'Kids Set'
+    };
+    
+    // ユーティリティ関数
+    function removePrice(name) {
+      if (!name) return '';
+      return name
+        .replace(/[\(（][^)）]*円[^)）]*[\)）]/g, '')
+        .replace(/[\(（][^)）]*[\)）]/g, '')
+        .replace(/\+[^+]*円/g, '')
+        .replace(/[\)）]/g, '')
+        .trim();
+    }
+    
+    function getTranslation(name) {
+      const baseName = removePrice(name);
+      let translation = menuTranslations[baseName];
+      if (!translation) {
+        for (const [jp, en] of Object.entries(menuTranslations)) {
+          if (baseName.includes(jp)) {
+            translation = en;
+            break;
+          }
+        }
+      }
+      return translation || '';
+    }
+    
+    function formatName(name) {
+      const baseName = removePrice(name);
+      const translation = getTranslation(name);
+      
+      if (currentLang === 'ja') {
+        return baseName;
+      } else if (currentLang === 'en') {
+        return translation || baseName;
+      } else {
+        return translation ? `${baseName} / ${translation}` : baseName;
+      }
+    }
+    
+    function escapeHTML(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+    
+    // 価格計算
+    function calculateTotal(order) {
+      let total = 0;
+      
+      if (order.orderType === 'set') {
+        const setName = removePrice(order.setType || '');
+        if (setName.includes('サンティ')) total = 1485;
+        else if (setName.includes('レディース')) total = 1850;
+        else if (setName.includes('タンドリー')) {
+          total = (order.drink && order.drink.includes('2200')) ? 2200 : 2100;
+        }
+        else if (setName.includes('ビリヤニ')) total = 1650;
+        
+        if (order.naanUpgrade && order.naanUpgrade !== '変更なし' && order.naanUpgrade !== '') {
+          const match = order.naanUpgrade.match(/\+(\d+)円/);
+          if (match) total += parseInt(match[1], 10);
+        }
+        if (order.drink && order.drink.includes('+')) {
+          const match = order.drink.match(/\+(\d+)円/);
+          if (match) total += parseInt(match[1], 10);
+        }
+      } else if (order.orderType === 'alacarte') {
+        if (order.items) {
+          const items = Array.isArray(order.items) ? order.items : [order.items];
+          items.forEach(item => {
+            const match = item.match(/[\(（](\d+)円[\)）]/);
+            if (match) total += parseInt(match[1], 10);
+          });
+        }
+        if (order.drink) {
+          const match = order.drink.match(/[\(（](\d+)円[\)）]/);
+          if (match) total += parseInt(match[1], 10);
+        }
+      } else if (order.orderType === 'kids') {
+        total = 715;
+      } else if (order.orderType === 'drink-only') {
+        if (order.drink) {
+          const match = order.drink.match(/[\(（](\d+)円[\)）]/);
+          if (match) total += parseInt(match[1], 10);
+        }
+      }
+      
+      return total;
+    }
+    
+    // ラベル取得
+    function getLabel(ja, en) {
+      if (currentLang === 'ja') return ja;
+      if (currentLang === 'en') return en;
+      return `${ja} / ${en}`;
+    }
+    
+    function getOrderTypeName(orderType) {
+      const names = {
+        'set': getLabel('セットメニュー', 'Set Menu'),
+        'alacarte': getLabel('アラカルト', 'A La Carte'),
+        'kids': getLabel('子どもセット', 'Kids Set'),
+        'drink-only': getLabel('ドリンクのみ', 'Drink Only')
+      };
+      return names[orderType] || orderType;
+    }
+    
+    // まとめ生成
+    function generateSummary() {
+      const orders = allOrders;
+      if (orders.length === 0) {
+        document.getElementById('summary-content').innerHTML = 
+          '<p style="text-align:center; color:#666;">' + getLabel('注文がありません', 'No orders') + '</p>';
+        return;
+      }
+      
+      // 集計
+      const setTypes = {};
+      const curries = {};
+      const biryanis = {};
+      const drinks = {};
+      const naanUpgrades = {};
+      const alacarteItems = {};
+      
+      const setOrders = orders.filter(o => o.orderType === 'set');
+      const alacarteOrders = orders.filter(o => o.orderType === 'alacarte');
+      const kidsOrders = orders.filter(o => o.orderType === 'kids');
+      const drinkOnlyOrders = orders.filter(o => o.orderType === 'drink-only');
+      
+      setOrders.forEach(order => {
+        if (order.setType) {
+          const setName = removePrice(order.setType);
+          setTypes[setName] = (setTypes[setName] || 0) + 1;
+        }
+        if (order.curry) {
+          order.curry.split('、').forEach(c => {
+            const curryName = removePrice(c.trim());
+            if (curryName) curries[curryName] = (curries[curryName] || 0) + 1;
+          });
+        }
+        if (order.biryani) {
+          const name = removePrice(order.biryani);
+          biryanis[name] = (biryanis[name] || 0) + 1;
+        }
+        if (order.drink) {
+          const name = removePrice(order.drink);
+          drinks[name] = (drinks[name] || 0) + 1;
+        }
+        if (order.naanUpgrade && order.naanUpgrade !== '変更なし') {
+          const name = removePrice(order.naanUpgrade);
+          naanUpgrades[name] = (naanUpgrades[name] || 0) + 1;
+        }
+      });
+      
+      kidsOrders.forEach(order => {
+        if (order.curry) {
+          const name = removePrice(order.curry);
+          curries[name] = (curries[name] || 0) + 1;
+        }
+        if (order.drink) {
+          const name = removePrice(order.drink);
+          drinks[name] = (drinks[name] || 0) + 1;
+        }
+      });
+      
+      drinkOnlyOrders.forEach(order => {
+        if (order.drink) {
+          const name = removePrice(order.drink);
+          drinks[name] = (drinks[name] || 0) + 1;
+        }
+      });
+      
+      alacarteOrders.forEach(order => {
+        if (order.items) {
+          const items = Array.isArray(order.items) ? order.items : [order.items];
+          items.forEach(item => {
+            const name = removePrice(item);
+            alacarteItems[name] = (alacarteItems[name] || 0) + 1;
+          });
+        }
+        if (order.drink) {
+          const name = removePrice(order.drink);
+          drinks[name] = (drinks[name] || 0) + 1;
+        }
+      });
+      
+      // HTML生成
+      let html = `
+        <div class="summary-total">
+          📊 ${getLabel('注文総数', 'Total Orders')}: <strong>${orders.length}${getLabel('名', ' people')}</strong>
+        </div>
+        
+        <div class="summary-section">
+          <h3>${getLabel('【オーダータイプ別】', '【Order Type】')}</h3>
+          <ul>
+            <li><span class="item-name">${getLabel('セットメニュー', 'Set Menu')}</span><span class="item-count">${setOrders.length}</span></li>
+            <li><span class="item-name">${getLabel('アラカルト', 'A La Carte')}</span><span class="item-count">${alacarteOrders.length}</span></li>
+            <li><span class="item-name">${getLabel('子どもセット', 'Kids Set')}</span><span class="item-count">${kidsOrders.length}</span></li>
+            <li><span class="item-name">${getLabel('ドリンクのみ', 'Drink Only')}</span><span class="item-count">${drinkOnlyOrders.length}</span></li>
+          </ul>
+        </div>
+      `;
+      
+      // セット別
+      if (Object.keys(setTypes).length > 0) {
+        html += `<div class="summary-section"><h3>${getLabel('【セット別集計】', '【Set Menu Summary】')}</h3><ul>`;
+        Object.entries(setTypes).sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
+          html += `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`;
+        });
+        html += '</ul></div>';
+      }
+      
+      // カレー
+      if (Object.keys(curries).length > 0) {
+        html += `<div class="summary-section"><h3>${getLabel('【カレー集計】', '【Curry Summary】')}</h3><ul>`;
+        Object.entries(curries).sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
+          html += `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`;
+        });
+        html += '</ul></div>';
+      }
+      
+      // ビリヤニ
+      if (Object.keys(biryanis).length > 0) {
+        html += `<div class="summary-section"><h3>${getLabel('【ビリヤニ集計】', '【Biryani Summary】')}</h3><ul>`;
+        Object.entries(biryanis).sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
+          html += `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`;
+        });
+        html += '</ul></div>';
+      }
+      
+      // ドリンク
+      if (Object.keys(drinks).length > 0) {
+        html += `<div class="summary-section"><h3>${getLabel('【ドリンク集計】', '【Drink Summary】')}</h3><ul>`;
+        Object.entries(drinks).sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
+          html += `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`;
+        });
+        html += '</ul></div>';
+      }
+      
+      // ナン変更
+      if (Object.keys(naanUpgrades).length > 0) {
+        html += `<div class="summary-section"><h3>${getLabel('【ナン変更集計】', '【Naan Upgrade Summary】')}</h3><ul>`;
+        Object.entries(naanUpgrades).sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
+          html += `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`;
+        });
+        html += '</ul></div>';
+      }
+      
+      // アラカルト
+      if (Object.keys(alacarteItems).length > 0) {
+        html += `<div class="summary-section"><h3>${getLabel('【アラカルトメニュー集計】', '【A La Carte Summary】')}</h3><ul>`;
+        Object.entries(alacarteItems).sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
+          html += `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`;
+        });
+        html += '</ul></div>';
+      }
+      
+      // 個別注文リスト
+      const sortedOrders = [...orders].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+      let grandTotal = 0;
+      
+      let tableRows = '';
+      sortedOrders.forEach((order, index) => {
+        let menuCol = '';
+        let curryCol = '';
+        const total = calculateTotal(order);
+        grandTotal += total;
+        
+        if (order.orderType === 'set') {
+          menuCol = order.setType ? formatName(removePrice(order.setType)) : '';
+          if (order.curry) {
+            curryCol = order.curry.split('、').map(c => formatName(removePrice(c.trim()))).join('<br>');
+          } else if (order.biryani) {
+            curryCol = formatName(removePrice(order.biryani));
+          }
+          if (order.naanUpgrade && order.naanUpgrade !== '変更なし' && order.naanUpgrade !== '') {
+            menuCol += '<br>+ ' + formatName(removePrice(order.naanUpgrade));
+          }
+        } else if (order.orderType === 'alacarte') {
+          const items = Array.isArray(order.items) ? order.items : [order.items];
+          menuCol = items.map(item => formatName(removePrice(item))).join('<br>');
+        } else if (order.orderType === 'kids') {
+          menuCol = getLabel('子どもセット', 'Kids Set');
+          curryCol = formatName(removePrice(order.curry || ''));
+        } else if (order.orderType === 'drink-only') {
+          menuCol = '-';
+        }
+        
+        let notesCol = '';
+        if (order.notes) {
+          notesCol = order.notes.length > 40 ? order.notes.substring(0, 40) + '...' : order.notes;
+        }
+        
+        tableRows += '<tr>' +
+          '<td style="text-align: center; font-weight: bold;">' + (index + 1) + '</td>' +
+          '<td>' + escapeHTML(order.name) + '</td>' +
+          '<td>' + getOrderTypeName(order.orderType) + '</td>' +
+          '<td>' + menuCol + '</td>' +
+          '<td>' + curryCol + '</td>' +
+          '<td>' + formatName(removePrice(order.drink || '')) + '</td>' +
+          '<td style="text-align: right; font-weight: bold;">¥' + total.toLocaleString() + '</td>' +
+          '<td style="font-size: 0.85em; color: #666;">' + escapeHTML(notesCol) + '</td>' +
+          '</tr>';
+      });
+      
+      html += '<div class="summary-section">' +
+        '<h3>' + getLabel('【個別注文リスト】', '【Individual Order List】') + '</h3>' +
+        '<table class="summary-detail-table">' +
+        '<thead><tr>' +
+        '<th>No.</th>' +
+        '<th>' + getLabel('名前', 'Name') + '</th>' +
+        '<th>' + getLabel('タイプ', 'Type') + '</th>' +
+        '<th>' + getLabel('セット/メニュー', 'Set/Menu') + '</th>' +
+        '<th>' + getLabel('カレー/ビリヤニ', 'Curry/Biryani') + '</th>' +
+        '<th>' + getLabel('ドリンク', 'Drink') + '</th>' +
+        '<th>' + getLabel('金額', 'Price') + '</th>' +
+        '<th>' + getLabel('備考', 'Notes') + '</th>' +
+        '</tr></thead>' +
+        '<tbody>' + tableRows + '</tbody>' +
+        '<tfoot><tr style="background: #fff8e1; font-weight: bold;">' +
+        '<td colspan="7" style="text-align: right;">' + getLabel('合計', 'Total') + ':</td>' +
+        '<td style="text-align: right; font-size: 1.1em;">¥' + grandTotal.toLocaleString() + '</td>' +
+        '</tr></tfoot>' +
+        '</table></div>';
+      
+      document.getElementById('summary-content').innerHTML = html;
+    }
+    
+    // タイトル更新
+    function updateTitle() {
+      const titleEl = document.getElementById('page-title');
+      if (currentLang === 'ja') {
+        titleEl.innerHTML = '🍛 忘年会オーダーまとめ';
+      } else if (currentLang === 'en') {
+        titleEl.innerHTML = '🍛 Year-End Party Order Summary';
+      } else {
+        titleEl.innerHTML = '🍛 忘年会オーダーまとめ<br>Year-End Party Order Summary';
+      }
+    }
+    
+    // 言語切り替え
+    document.getElementById('lang-both').addEventListener('click', () => {
+      currentLang = 'both';
+      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+      document.getElementById('lang-both').classList.add('active');
+      updateTitle();
+      generateSummary();
+    });
+    
+    document.getElementById('lang-ja').addEventListener('click', () => {
+      currentLang = 'ja';
+      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+      document.getElementById('lang-ja').classList.add('active');
+      updateTitle();
+      generateSummary();
+    });
+    
+    document.getElementById('lang-en').addEventListener('click', () => {
+      currentLang = 'en';
+      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+      document.getElementById('lang-en').classList.add('active');
+      updateTitle();
+      generateSummary();
+    });
+    
+    // PDF出力
+    document.getElementById('btn-pdf').addEventListener('click', () => {
+      window.print();
+    });
+    
+    // Firebase初期化
+    function initFirebase() {
+      try {
+        if (typeof firebaseConfig === 'undefined' || firebaseConfig.apiKey === 'YOUR_API_KEY') {
+          document.getElementById('summary-content').innerHTML = 
+            '<p style="text-align:center; color:#c00;">Firebase未設定 / Firebase not configured</p>';
+          return;
+        }
+        
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+        const ordersRef = db.ref('orders');
+        
+        ordersRef.on('value', (snapshot) => {
+          const data = snapshot.val();
+          if (data) {
+            allOrders = Object.keys(data).map(key => ({ ...data[key], id: key }))
+              .sort((a, b) => (b.timestampMs || 0) - (a.timestampMs || 0));
+          } else {
+            allOrders = [];
+          }
+          generateSummary();
+        });
+        
+      } catch (error) {
+        console.error('Firebase error:', error);
+        document.getElementById('summary-content').innerHTML = 
+          '<p style="text-align:center; color:#c00;">Error loading data</p>';
+      }
+    }
+    
+    // 初期化
+    document.addEventListener('DOMContentLoaded', initFirebase);
+  </script>
+</body>
+</html>
+

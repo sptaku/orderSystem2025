@@ -346,19 +346,32 @@
         top: 0;
         background: white;
         padding: 0;
+        width: 100%;
       }
       .summary-modal-content {
         box-shadow: none;
         max-height: none;
         padding: 20px;
+        width: 100%;
       }
-      .summary-actions {
-        display: none;
+      .summary-actions, .summary-lang-buttons {
+        display: none !important;
       }
       .summary-section h3 {
         background: #333 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+      }
+      .summary-total {
+        background: #f5f5f5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .summary-section {
+        page-break-inside: avoid;
+      }
+      .summary-detail-table {
+        font-size: 10pt;
       }
     }
   </style>
@@ -436,11 +449,16 @@
     <div id="summary-modal" class="summary-modal hidden">
       <div class="summary-modal-content">
         <div class="summary-header">
-          <h2>🍛 忘年会オーダーまとめ<br><span style="font-size: 0.8em; color: #666;">Year-End Party Order Summary</span></h2>
+          <h2 id="summary-title">🍛 忘年会オーダーまとめ<br><span style="font-size: 0.8em; color: #666;">Year-End Party Order Summary</span></h2>
           <div class="summary-actions">
-            <button id="btn-print" class="btn-print">🖨️ 印刷 / Print</button>
-            <button id="btn-close-summary" class="btn-close-summary">閉じる / Close</button>
+            <button id="btn-print" class="btn-print">🖨️ 印刷/PDF</button>
+            <button id="btn-close-summary" class="btn-close-summary">閉じる</button>
           </div>
+        </div>
+        <div class="summary-lang-buttons" style="display: flex; gap: 8px; margin-bottom: 16px; justify-content: center;">
+          <button id="sum-lang-both" class="sum-lang-btn active" style="padding: 8px 16px; border: 2px solid var(--primary); background: var(--primary); color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">日本語/English</button>
+          <button id="sum-lang-ja" class="sum-lang-btn" style="padding: 8px 16px; border: 2px solid var(--primary); background: white; color: var(--primary); border-radius: 6px; cursor: pointer; font-weight: 600;">日本語のみ</button>
+          <button id="sum-lang-en" class="sum-lang-btn" style="padding: 8px 16px; border: 2px solid var(--primary); background: white; color: var(--primary); border-radius: 6px; cursor: pointer; font-weight: 600;">English Only</button>
         </div>
         <div id="summary-content">
           <!-- JSで生成 -->
@@ -718,10 +736,10 @@
     
     function getOrderTypeName(orderType) {
       const names = {
-        'set': 'セットメニュー',
-        'alacarte': 'アラカルト',
-        'kids': '子どもセット',
-        'drink-only': 'ドリンクのみ'
+        'set': getLabel('セットメニュー', 'Set Menu'),
+        'alacarte': getLabel('アラカルト', 'A La Carte'),
+        'kids': getLabel('子どもセット', 'Kids Set'),
+        'drink-only': getLabel('ドリンクのみ', 'Drink Only')
       };
       return names[orderType] || orderType;
     }
@@ -797,6 +815,51 @@
     
     btnCloseSummary.addEventListener('click', () => {
       summaryModal.classList.add('hidden');
+    });
+    
+    // 言語切り替えボタン
+    function updateSummaryTitle() {
+      const titleEl = document.getElementById('summary-title');
+      if (summaryLang === 'ja') {
+        titleEl.innerHTML = '🍛 忘年会オーダーまとめ';
+      } else if (summaryLang === 'en') {
+        titleEl.innerHTML = '🍛 Year-End Party Order Summary';
+      } else {
+        titleEl.innerHTML = '🍛 忘年会オーダーまとめ<br><span style="font-size: 0.8em; color: #666;">Year-End Party Order Summary</span>';
+      }
+    }
+    
+    function updateLangButtons(activeLang) {
+      document.querySelectorAll('.sum-lang-btn').forEach(btn => {
+        btn.style.background = 'white';
+        btn.style.color = 'var(--primary)';
+      });
+      const activeBtn = document.getElementById('sum-lang-' + activeLang);
+      if (activeBtn) {
+        activeBtn.style.background = 'var(--primary)';
+        activeBtn.style.color = 'white';
+      }
+    }
+    
+    document.getElementById('sum-lang-both').addEventListener('click', () => {
+      summaryLang = 'both';
+      updateLangButtons('both');
+      updateSummaryTitle();
+      generateSummary();
+    });
+    
+    document.getElementById('sum-lang-ja').addEventListener('click', () => {
+      summaryLang = 'ja';
+      updateLangButtons('ja');
+      updateSummaryTitle();
+      generateSummary();
+    });
+    
+    document.getElementById('sum-lang-en').addEventListener('click', () => {
+      summaryLang = 'en';
+      updateLangButtons('en');
+      updateSummaryTitle();
+      generateSummary();
     });
     
     summaryModal.addEventListener('click', (e) => {
@@ -1009,6 +1072,36 @@
       'ウイスキーB(+450円)': 450
     };
     
+    // ====== 言語設定 ======
+    let summaryLang = 'both'; // 'both', 'ja', 'en'
+    
+    function getLabel(ja, en) {
+      if (summaryLang === 'ja') return ja;
+      if (summaryLang === 'en') return en;
+      return `${ja} / ${en}`;
+    }
+    
+    function formatName(name) {
+      const baseName = removePrice(name);
+      let translation = menuTranslations[baseName];
+      if (!translation) {
+        for (const [jp, en] of Object.entries(menuTranslations)) {
+          if (baseName.includes(jp)) {
+            translation = en;
+            break;
+          }
+        }
+      }
+      
+      if (summaryLang === 'ja') {
+        return baseName;
+      } else if (summaryLang === 'en') {
+        return translation || baseName;
+      } else {
+        return translation ? `${baseName} / ${translation}` : baseName;
+      }
+    }
+    
     // アラカルト・ドリンク価格（正規表現で抽出）
     function extractPrice(name) {
       if (!name) return 0;
@@ -1167,16 +1260,16 @@
       // HTML生成
       let html = `
         <div class="summary-total">
-          📊 注文総数 / Total Orders: <strong>${orders.length}名 / ${orders.length} people</strong>
+          📊 ${getLabel('注文総数', 'Total Orders')}: <strong>${orders.length}${getLabel('名', ' people')}</strong>
         </div>
         
         <div class="summary-section">
-          <h3>【オーダータイプ別 / Order Type】</h3>
+          <h3>【${getLabel('オーダータイプ別', 'Order Type')}】</h3>
           <ul>
-            <li><span class="item-name">セットメニュー / Set Menu</span><span class="item-count">${setOrders.length}</span></li>
-            <li><span class="item-name">アラカルト / A La Carte</span><span class="item-count">${alacarteOrders.length}</span></li>
-            <li><span class="item-name">子どもセット / Kids Set</span><span class="item-count">${kidsOrders.length}</span></li>
-            <li><span class="item-name">ドリンクのみ / Drink Only</span><span class="item-count">${drinkOnlyOrders.length}</span></li>
+            <li><span class="item-name">${getLabel('セットメニュー', 'Set Menu')}</span><span class="item-count">${setOrders.length}</span></li>
+            <li><span class="item-name">${getLabel('アラカルト', 'A La Carte')}</span><span class="item-count">${alacarteOrders.length}</span></li>
+            <li><span class="item-name">${getLabel('子どもセット', 'Kids Set')}</span><span class="item-count">${kidsOrders.length}</span></li>
+            <li><span class="item-name">${getLabel('ドリンクのみ', 'Drink Only')}</span><span class="item-count">${drinkOnlyOrders.length}</span></li>
           </ul>
         </div>
       `;
@@ -1185,10 +1278,10 @@
       if (Object.keys(setTypes).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【セット別集計 / Set Menu Summary】</h3>
+            <h3>【${getLabel('セット別集計', 'Set Menu Summary')}】</h3>
             <ul>
               ${Object.entries(setTypes).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -1199,10 +1292,10 @@
       if (Object.keys(curries).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【カレー集計 / Curry Summary】</h3>
+            <h3>【${getLabel('カレー集計', 'Curry Summary')}】</h3>
             <ul>
               ${Object.entries(curries).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -1213,10 +1306,10 @@
       if (Object.keys(biryanis).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【ビリヤニ集計 / Biryani Summary】</h3>
+            <h3>【${getLabel('ビリヤニ集計', 'Biryani Summary')}】</h3>
             <ul>
               ${Object.entries(biryanis).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -1227,10 +1320,10 @@
       if (Object.keys(drinks).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【ドリンク集計 / Drink Summary】</h3>
+            <h3>【${getLabel('ドリンク集計', 'Drink Summary')}】</h3>
             <ul>
               ${Object.entries(drinks).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -1241,10 +1334,10 @@
       if (Object.keys(naanUpgrades).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【ナン変更集計 / Naan Upgrade Summary】</h3>
+            <h3>【${getLabel('ナン変更集計', 'Naan Upgrade Summary')}】</h3>
             <ul>
               ${Object.entries(naanUpgrades).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -1255,10 +1348,10 @@
       if (Object.keys(alacarteItems).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【アラカルトメニュー集計 / A La Carte Summary】</h3>
+            <h3>【${getLabel('アラカルトメニュー集計', 'A La Carte Summary')}】</h3>
             <ul>
               ${Object.entries(alacarteItems).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(formatName(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -1277,23 +1370,23 @@
         grandTotal += total;
         
         if (order.orderType === 'set') {
-          menuCol = order.setType ? addEnglish(removePrice(order.setType)) : '';
+          menuCol = order.setType ? formatName(removePrice(order.setType)) : '';
           // カレーは「、」で分割して改行表示
           if (order.curry) {
-            const curryList = order.curry.split('、').map(c => addEnglish(removePrice(c.trim())));
+            const curryList = order.curry.split('、').map(c => formatName(removePrice(c.trim())));
             curryCol = curryList.join('<br>');
           } else if (order.biryani) {
-            curryCol = addEnglish(removePrice(order.biryani));
+            curryCol = formatName(removePrice(order.biryani));
           }
           if (order.naanUpgrade && order.naanUpgrade !== '変更なし' && order.naanUpgrade !== '') {
-            menuCol += '<br>+ ' + addEnglish(removePrice(order.naanUpgrade));
+            menuCol += '<br>+ ' + formatName(removePrice(order.naanUpgrade));
           }
         } else if (order.orderType === 'alacarte') {
           const items = Array.isArray(order.items) ? order.items : [order.items];
-          menuCol = items.map(item => addEnglish(removePrice(item))).join('<br>');
+          menuCol = items.map(item => formatName(removePrice(item))).join('<br>');
         } else if (order.orderType === 'kids') {
-          menuCol = '子どもセット / Kids Set';
-          curryCol = addEnglish(removePrice(order.curry || ''));
+          menuCol = getLabel('子どもセット', 'Kids Set');
+          curryCol = formatName(removePrice(order.curry || ''));
         } else if (order.orderType === 'drink-only') {
           menuCol = '-';
         }
@@ -1310,28 +1403,37 @@
           '<td>' + getOrderTypeName(order.orderType) + '</td>' +
           '<td>' + menuCol + '</td>' +
           '<td>' + curryCol + '</td>' +
-          '<td>' + addEnglish(removePrice(order.drink || '')) + '</td>' +
+          '<td>' + formatName(removePrice(order.drink || '')) + '</td>' +
           '<td style="text-align: right; font-weight: bold;">¥' + total.toLocaleString() + '</td>' +
           '<td style="font-size: 0.85em; color: #666;">' + escapeHTML(notesCol) + '</td>' +
           '</tr>';
       }).join('');
       
+      // テーブルヘッダーを言語設定に応じて生成
+      const thName = summaryLang === 'both' ? '名前<br>Name' : (summaryLang === 'en' ? 'Name' : '名前');
+      const thType = summaryLang === 'both' ? 'タイプ<br>Type' : (summaryLang === 'en' ? 'Type' : 'タイプ');
+      const thMenu = summaryLang === 'both' ? 'セット/メニュー<br>Set/Menu' : (summaryLang === 'en' ? 'Set/Menu' : 'セット/メニュー');
+      const thCurry = summaryLang === 'both' ? 'カレー/ビリヤニ<br>Curry/Biryani' : (summaryLang === 'en' ? 'Curry/Biryani' : 'カレー/ビリヤニ');
+      const thDrink = summaryLang === 'both' ? 'ドリンク<br>Drink' : (summaryLang === 'en' ? 'Drink' : 'ドリンク');
+      const thPrice = summaryLang === 'both' ? '金額<br>Price' : (summaryLang === 'en' ? 'Price' : '金額');
+      const thNotes = summaryLang === 'both' ? '備考<br>Notes' : (summaryLang === 'en' ? 'Notes' : '備考');
+      
       html += '<div class="summary-section">' +
-        '<h3>【個別注文リスト / Individual Order List】（名前順 / Alphabetical）</h3>' +
+        '<h3>【' + getLabel('個別注文リスト', 'Individual Order List') + '】（' + getLabel('名前順', 'Alphabetical') + '）</h3>' +
         '<table class="summary-detail-table">' +
         '<thead><tr>' +
         '<th>No.</th>' +
-        '<th>名前<br>Name</th>' +
-        '<th>タイプ<br>Type</th>' +
-        '<th>セット/メニュー<br>Set/Menu</th>' +
-        '<th>カレー/ビリヤニ<br>Curry/Biryani</th>' +
-        '<th>ドリンク<br>Drink</th>' +
-        '<th>金額<br>Price</th>' +
-        '<th>備考<br>Notes</th>' +
+        '<th>' + thName + '</th>' +
+        '<th>' + thType + '</th>' +
+        '<th>' + thMenu + '</th>' +
+        '<th>' + thCurry + '</th>' +
+        '<th>' + thDrink + '</th>' +
+        '<th>' + thPrice + '</th>' +
+        '<th>' + thNotes + '</th>' +
         '</tr></thead>' +
         '<tbody>' + tableRows + '</tbody>' +
         '<tfoot><tr style="background: #fff8e1; font-weight: bold;">' +
-        '<td colspan="7" style="text-align: right;">合計 / Total:</td>' +
+        '<td colspan="7" style="text-align: right;">' + getLabel('合計', 'Total') + ':</td>' +
         '<td style="text-align: right; font-size: 1.1em;">¥' + grandTotal.toLocaleString() + '</td>' +
         '</tr></tfoot>' +
         '</table></div>';
