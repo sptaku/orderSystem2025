@@ -941,7 +941,14 @@
     // メニュー名から価格を除去する関数
     function removePrice(name) {
       if (!name) return '';
-      return name.replace(/[\(（].*?[円\)）]/g, '').replace(/\+.*円/g, '').trim();
+      // 様々なパターンの価格表記を除去
+      let result = name
+        .replace(/[\(（][^)）]*円[^)）]*[\)）]/g, '')  // (xxx円) や （xxx円）
+        .replace(/[\(（][^)）]*[\)）]/g, '')           // (xxx) や （xxx）
+        .replace(/\+[^+]*円/g, '')                     // +xxx円
+        .replace(/[\)）]/g, '')                        // 残った閉じ括弧を除去
+        .trim();
+      return result;
     }
     
     // メニュー名に英語を追加する関数（価格は除去）
