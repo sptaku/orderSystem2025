@@ -436,10 +436,10 @@
     <div id="summary-modal" class="summary-modal hidden">
       <div class="summary-modal-content">
         <div class="summary-header">
-          <h2>🍛 忘年会オーダーまとめ</h2>
+          <h2>🍛 忘年会オーダーまとめ<br><span style="font-size: 0.8em; color: #666;">Year-End Party Order Summary</span></h2>
           <div class="summary-actions">
-            <button id="btn-print" class="btn-print">🖨️ 印刷</button>
-            <button id="btn-close-summary" class="btn-close-summary">閉じる</button>
+            <button id="btn-print" class="btn-print">🖨️ 印刷 / Print</button>
+            <button id="btn-close-summary" class="btn-close-summary">閉じる / Close</button>
           </div>
         </div>
         <div id="summary-content">
@@ -882,16 +882,16 @@
       // HTML生成
       let html = `
         <div class="summary-total">
-          📊 注文総数: <strong>${orders.length}名</strong>
+          📊 注文総数 / Total Orders: <strong>${orders.length}名 / ${orders.length} people</strong>
         </div>
         
         <div class="summary-section">
-          <h3>【オーダータイプ別】</h3>
+          <h3>【オーダータイプ別 / Order Type】</h3>
           <ul>
-            <li><span class="item-name">セットメニュー</span><span class="item-count">${setOrders.length}名</span></li>
-            <li><span class="item-name">アラカルト</span><span class="item-count">${alacarteOrders.length}名</span></li>
-            <li><span class="item-name">子どもセット</span><span class="item-count">${kidsOrders.length}名</span></li>
-            <li><span class="item-name">ドリンクのみ</span><span class="item-count">${drinkOnlyOrders.length}名</span></li>
+            <li><span class="item-name">セットメニュー / Set Menu</span><span class="item-count">${setOrders.length}</span></li>
+            <li><span class="item-name">アラカルト / A La Carte</span><span class="item-count">${alacarteOrders.length}</span></li>
+            <li><span class="item-name">子どもセット / Kids Set</span><span class="item-count">${kidsOrders.length}</span></li>
+            <li><span class="item-name">ドリンクのみ / Drink Only</span><span class="item-count">${drinkOnlyOrders.length}</span></li>
           </ul>
         </div>
       `;
@@ -900,7 +900,7 @@
       if (Object.keys(setTypes).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【セット別集計】</h3>
+            <h3>【セット別集計 / Set Menu Summary】</h3>
             <ul>
               ${Object.entries(setTypes).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
                 `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
@@ -914,7 +914,7 @@
       if (Object.keys(curries).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【カレー集計】</h3>
+            <h3>【カレー集計 / Curry Summary】</h3>
             <ul>
               ${Object.entries(curries).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
                 `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
@@ -928,7 +928,7 @@
       if (Object.keys(biryanis).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【ビリヤニ集計】</h3>
+            <h3>【ビリヤニ集計 / Biryani Summary】</h3>
             <ul>
               ${Object.entries(biryanis).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
                 `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
@@ -942,7 +942,7 @@
       if (Object.keys(drinks).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【ドリンク集計】</h3>
+            <h3>【ドリンク集計 / Drink Summary】</h3>
             <ul>
               ${Object.entries(drinks).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
                 `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
@@ -956,7 +956,7 @@
       if (Object.keys(naanUpgrades).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【ナン変更集計】</h3>
+            <h3>【ナン変更集計 / Naan Upgrade Summary】</h3>
             <ul>
               ${Object.entries(naanUpgrades).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
                 `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
@@ -970,7 +970,7 @@
       if (Object.keys(alacarteItems).length > 0) {
         html += `
           <div class="summary-section">
-            <h3>【アラカルトメニュー集計】</h3>
+            <h3>【アラカルトメニュー集計 / A La Carte Summary】</h3>
             <ul>
               ${Object.entries(alacarteItems).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
                 `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
@@ -984,16 +984,16 @@
       const sortedOrders = [...orders].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
       html += `
         <div class="summary-section">
-          <h3>【個別注文リスト】（名前順・確認用）</h3>
+          <h3>【個別注文リスト / Individual Order List】（名前順 / Alphabetical）</h3>
           <table class="summary-detail-table">
             <thead>
               <tr>
-                <th>名前</th>
-                <th>タイプ</th>
-                <th>セット/メニュー</th>
-                <th>カレー/ビリヤニ</th>
-                <th>ドリンク</th>
-                <th>備考</th>
+                <th>名前<br>Name</th>
+                <th>タイプ<br>Type</th>
+                <th>セット/メニュー<br>Set/Menu</th>
+                <th>カレー/ビリヤニ<br>Curry/Biryani</th>
+                <th>ドリンク<br>Drink</th>
+                <th>備考<br>Notes</th>
               </tr>
             </thead>
             <tbody>
