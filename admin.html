@@ -938,6 +938,8 @@
       'ザクロラッシー': 'Pomegranate Lassi',
       '紅茶(ホット/コールド)': 'Tea (Hot/Cold)',
       'コーヒー(ホット/コールド)': 'Coffee (Hot/Cold)',
+      'コーヒー（ホット/コールド）': 'Coffee (Hot/Cold)',
+      'コーヒー': 'Coffee',
       '紅茶/コーヒー': 'Tea/Coffee',
       // ドリンク（アルコール）
       '生ビール': 'Draft Beer',
@@ -1193,6 +1195,21 @@
       // ドリンクのみ注文
       const drinkOnlyOrders = orders.filter(o => o.orderType === 'drink-only');
       
+      // 備考欄から具体的なドリンク名を抽出する関数
+      function extractDrinkFromNotes(notes) {
+        if (!notes) return null;
+        // セットドリンクのリスト
+        const drinkList = ['ラッシー', 'マンゴージュース', 'マンゴーラッシー', 'オレンジジュース', 
+          'オレンジラッシー', 'ウーロン茶', 'ローズラッシー', 'コーラ', 'ザクロラッシー', 
+          '紅茶', 'コーヒー'];
+        for (const drink of drinkList) {
+          if (notes.includes(drink)) {
+            return drink;
+          }
+        }
+        return null;
+      }
+      
       // セット集計
       setOrders.forEach(order => {
         if (order.setType) {
@@ -1213,7 +1230,14 @@
           biryanis[biryaniName] = (biryanis[biryaniName] || 0) + 1;
         }
         if (order.drink) {
-          const drinkName = removePrice(order.drink);
+          let drinkName = removePrice(order.drink);
+          // タンドリーセットで普通ドリンクの場合、備考欄から具体的なドリンク名を抽出
+          if (drinkName === '普通ドリンク' || drinkName.includes('普通ドリンク')) {
+            const actualDrink = extractDrinkFromNotes(order.notes);
+            if (actualDrink) {
+              drinkName = actualDrink;
+            }
+          }
           drinks[drinkName] = (drinks[drinkName] || 0) + 1;
         }
         if (order.naanUpgrade && order.naanUpgrade !== '変更なし') {
@@ -1397,13 +1421,22 @@
           notesCol = order.notes.length > 40 ? order.notes.substring(0, 40) + '...' : order.notes;
         }
         
+        // ドリンク名を取得（タンドリーセットの普通ドリンクの場合は備考欄から抽出）
+        let drinkDisplay = removePrice(order.drink || '');
+        if (drinkDisplay === '普通ドリンク' || drinkDisplay.includes('普通ドリンク')) {
+          const actualDrink = extractDrinkFromNotes(order.notes);
+          if (actualDrink) {
+            drinkDisplay = actualDrink;
+          }
+        }
+        
         return '<tr>' +
           '<td style="text-align: center; font-weight: bold;">' + (index + 1) + '</td>' +
           '<td>' + escapeHTML(order.name) + '</td>' +
           '<td>' + getOrderTypeName(order.orderType) + '</td>' +
           '<td>' + menuCol + '</td>' +
           '<td>' + curryCol + '</td>' +
-          '<td>' + formatName(removePrice(order.drink || '')) + '</td>' +
+          '<td>' + formatName(drinkDisplay) + '</td>' +
           '<td style="text-align: right; font-weight: bold;">¥' + total.toLocaleString() + '</td>' +
           '<td style="font-size: 0.85em; color: #666;">' + escapeHTML(notesCol) + '</td>' +
           '</tr>';
