@@ -809,6 +809,160 @@
       window.print();
     });
     
+    // メニュー名の日英対応表
+    const menuTranslations = {
+      // セット名
+      'サンティセット': 'Shanti Set',
+      'レディースセット（男性も可）': 'Ladies Set',
+      'レディースセット': 'Ladies Set',
+      'タンドリー焼き肉とカレーのセット': 'Tandoori & Curry Set',
+      'ビリヤニセット': 'Biryani Set',
+      // カレー（チキン）
+      'チキンカレー': 'Chicken Curry',
+      'チキンマサラカレー': 'Chicken Masala Curry',
+      '新鮮な玉ねぎチキンカレー': 'Fresh Onion Chicken Curry',
+      'ほうれん草チキンカレー': 'Spinach Chicken Curry',
+      'バターチキンカレー': 'Butter Chicken Curry',
+      'チキンララカレー': 'Chicken Lala Curry',
+      'ビンディチキンカレー': 'Bhindi Chicken Curry',
+      '卵カレー': 'Egg Curry',
+      '豆チキンカレー': 'Dal Chicken Curry',
+      'タイグリーンカレー': 'Thai Green Curry',
+      // カレー（マトン）
+      'マトンカレー': 'Mutton Curry',
+      'マトンマサラカレー': 'Mutton Masala Curry',
+      'マトンドピアザカレー': 'Mutton Do Pyaza Curry',
+      '豆マトンカレー': 'Dal Mutton Curry',
+      'ほうれん草マトンカレー': 'Spinach Mutton Curry',
+      'マトンララカレー': 'Mutton Lala Curry',
+      // カレー（野菜）
+      'ほうれん草チーズカレー': 'Spinach Cheese Curry',
+      'ほうれん草豆カレー': 'Spinach Dal Curry',
+      'ほうれん草キノコカレー': 'Spinach Mushroom Curry',
+      '豆カレー': 'Dal Curry',
+      'ミックス野菜カレー': 'Mixed Vegetable Curry',
+      '茄子マサラカレー': 'Eggplant Masala Curry',
+      'オクラマサラカレー': 'Okra Masala Curry',
+      'グリンピースとチーズカレー': 'Green Peas & Cheese Curry',
+      'チーズバターカレー': 'Cheese Butter Curry',
+      'ヒヨコマメマサラカレー': 'Chickpea Masala Curry',
+      // カレー（シーフード）
+      'エビカレー': 'Shrimp Curry',
+      'エビマサラカレー': 'Shrimp Masala Curry',
+      'エビドピアザカレー': 'Shrimp Do Pyaza Curry',
+      'ほうれん草と海老カレー': 'Spinach Shrimp Curry',
+      'エビバターカレー': 'Shrimp Butter Curry',
+      'ミックスシーフードカレー': 'Mixed Seafood Curry',
+      'ほうれん草シーフードカレー': 'Spinach Seafood Curry',
+      // カレー（キーマ）
+      'キーマカレー': 'Keema Curry',
+      '卵キーマカレー': 'Egg Keema Curry',
+      '茄子キーマカレー': 'Eggplant Keema Curry',
+      // ビリヤニ
+      'チキンビリヤニ': 'Chicken Biryani',
+      'マトンビリヤニ': 'Mutton Biryani',
+      'エビビリヤニ': 'Shrimp Biryani',
+      '野菜ビリヤニ': 'Vegetable Biryani',
+      // ドリンク（ソフトドリンク）
+      'ラッシー': 'Lassi',
+      'マンゴージュース': 'Mango Juice',
+      'マンゴーラッシー': 'Mango Lassi',
+      'オレンジジュース': 'Orange Juice',
+      'オレンジラッシー': 'Orange Lassi',
+      'ウーロン茶': 'Oolong Tea',
+      'ローズラッシー': 'Rose Lassi',
+      'コーラ': 'Cola',
+      'ザクロラッシー': 'Pomegranate Lassi',
+      '紅茶(ホット/コールド)': 'Tea (Hot/Cold)',
+      'コーヒー(ホット/コールド)': 'Coffee (Hot/Cold)',
+      '紅茶/コーヒー': 'Tea/Coffee',
+      // ドリンク（アルコール）
+      '生ビール': 'Draft Beer',
+      '瓶ビール': 'Bottled Beer',
+      'キングフィッシャービール': 'Kingfisher Beer',
+      'ネパールアイスビール': 'Nepal Ice Beer',
+      'コロナビール': 'Corona Beer',
+      'ノンアルコールビール': 'Non-Alcoholic Beer',
+      'カクテル': 'Cocktail',
+      'サワー': 'Sour',
+      'グラスワイン': 'Glass Wine',
+      'グラスラム': 'Glass Rum',
+      'ウイスキーA': 'Whiskey A',
+      'ウイスキーB': 'Whiskey B',
+      // ナン
+      'ナン': 'Naan',
+      'ライス': 'Rice',
+      'チーズナン': 'Cheese Naan',
+      'ニンニクチーズナン': 'Garlic Cheese Naan',
+      'ニンニクナン': 'Garlic Naan',
+      'ほうれん草ナン': 'Spinach Naan',
+      '野菜詰め物ナン': 'Vegetable Stuffed Naan',
+      'キーマナン': 'Keema Naan',
+      'カシミールナン': 'Kashmiri Naan',
+      'バスマティライス': 'Basmati Rice',
+      // アラカルト
+      'グリーンサラダ': 'Green Salad',
+      'トマトサラダ': 'Tomato Salad',
+      'タイ風チキンサラダ': 'Thai Chicken Salad',
+      'わかめサラダ': 'Seaweed Salad',
+      'ミックスシーフードサラダ': 'Mixed Seafood Salad',
+      'タイ風エビサラダ': 'Thai Shrimp Salad',
+      'ヒマラヤチキンスープ': 'Himalaya Chicken Soup',
+      '卵キノココーンスープ': 'Egg Mushroom Corn Soup',
+      'タイ風トムヤムエビスープ': 'Thai Tom Yum Shrimp Soup',
+      'パパド': 'Papad',
+      'マサラパパド': 'Masala Papad',
+      'チキンパコラ': 'Chicken Pakora',
+      '野菜パコラ': 'Vegetable Pakora',
+      'ソテーキャベツ': 'Sauteed Cabbage',
+      'チャナチャット': 'Chana Chaat',
+      'ニンニクいためブロッコリー': 'Garlic Stir-Fried Broccoli',
+      'チリチキン': 'Chili Chicken',
+      'アルーコアチャール': 'Aloo Ko Achar',
+      'チキン焼きそば': 'Chicken Yakisoba',
+      '蒸し鶏モモ': 'Steamed Chicken Momo',
+      'ニンニクいためチキン': 'Garlic Stir-Fried Chicken',
+      '野菜サモサ': 'Vegetable Samosa',
+      '砂肝いため': 'Stir-Fried Gizzard',
+      'ワイワイシャデック': 'Wai Wai Sadeko',
+      'バッタマチャシャデック': 'Bhatmas Sadeko',
+      'フライじゃがいも': 'French Fries',
+      '卵オムレツ': 'Egg Omelette',
+      'チキンチョイエラ': 'Chicken Choila',
+      'タンドリーチキン': 'Tandoori Chicken',
+      'チキンティッカ': 'Chicken Tikka',
+      'シークカバブ': 'Seekh Kebab',
+      'ニンニクカバブ': 'Garlic Kebab',
+      'タンドリー焼きエビ': 'Tandoori Shrimp',
+      'タンドリー3in1シズラー': 'Tandoori 3-in-1 Sizzler',
+      'タンドリー焼き肉盛り合わせ': 'Tandoori Mixed Grill'
+    };
+    
+    // メニュー名に英語を追加する関数
+    function addEnglish(name) {
+      if (!name) return '';
+      // 価格部分を分離
+      const priceMatch = name.match(/[\(（].*?[円\)）]/);
+      const baseName = name.replace(/[\(（].*?[円\)）]/, '').trim();
+      
+      // 部分一致で翻訳を検索
+      let translation = menuTranslations[baseName];
+      if (!translation) {
+        // 価格付きの名前で検索
+        for (const [jp, en] of Object.entries(menuTranslations)) {
+          if (baseName.includes(jp)) {
+            translation = en;
+            break;
+          }
+        }
+      }
+      
+      if (translation) {
+        return `${baseName} / ${translation}${priceMatch ? ' ' + priceMatch[0] : ''}`;
+      }
+      return name;
+    }
+    
     function generateSummary() {
       const orders = allOrders;
       
@@ -903,7 +1057,7 @@
             <h3>【セット別集計 / Set Menu Summary】</h3>
             <ul>
               ${Object.entries(setTypes).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -917,7 +1071,7 @@
             <h3>【カレー集計 / Curry Summary】</h3>
             <ul>
               ${Object.entries(curries).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -931,7 +1085,7 @@
             <h3>【ビリヤニ集計 / Biryani Summary】</h3>
             <ul>
               ${Object.entries(biryanis).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -945,7 +1099,7 @@
             <h3>【ドリンク集計 / Drink Summary】</h3>
             <ul>
               ${Object.entries(drinks).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -959,7 +1113,7 @@
             <h3>【ナン変更集計 / Naan Upgrade Summary】</h3>
             <ul>
               ${Object.entries(naanUpgrades).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -973,7 +1127,7 @@
             <h3>【アラカルトメニュー集計 / A La Carte Summary】</h3>
             <ul>
               ${Object.entries(alacarteItems).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
-                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+                `<li><span class="item-name">${escapeHTML(addEnglish(name))}</span><span class="item-count">${count}</span></li>`
               ).join('')}
             </ul>
           </div>
@@ -1002,17 +1156,17 @@
                 let curryCol = '';
                 
                 if (order.orderType === 'set') {
-                  menuCol = order.setType ? order.setType.split('（')[0] : '';
-                  curryCol = order.curry || order.biryani || '';
+                  menuCol = order.setType ? addEnglish(order.setType.split('（')[0]) : '';
+                  curryCol = addEnglish(order.curry || order.biryani || '');
                   if (order.naanUpgrade && order.naanUpgrade !== '変更なし') {
-                    menuCol += ` (${order.naanUpgrade})`;
+                    menuCol += ` (${addEnglish(order.naanUpgrade)})`;
                   }
                 } else if (order.orderType === 'alacarte') {
                   const items = Array.isArray(order.items) ? order.items : [order.items];
-                  menuCol = items.join(', ');
+                  menuCol = items.map(item => addEnglish(item)).join(', ');
                 } else if (order.orderType === 'kids') {
-                  menuCol = '子どもセット';
-                  curryCol = order.curry || '';
+                  menuCol = '子どもセット / Kids Set';
+                  curryCol = addEnglish(order.curry || '');
                 } else if (order.orderType === 'drink-only') {
                   menuCol = '-';
                 }
@@ -1023,7 +1177,7 @@
                     <td>${getOrderTypeName(order.orderType)}</td>
                     <td>${escapeHTML(menuCol)}</td>
                     <td>${escapeHTML(curryCol)}</td>
-                    <td>${escapeHTML(order.drink || '')}</td>
+                    <td>${escapeHTML(addEnglish(order.drink || ''))}</td>
                     <td>${escapeHTML(order.notes || '')}</td>
                   </tr>
                 `;
