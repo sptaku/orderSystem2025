@@ -191,6 +191,176 @@
       background: #f5f5f5;
       color: var(--text-secondary);
     }
+    
+    /* お店用まとめボタン */
+    .btn-summary {
+      background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-summary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    }
+    
+    /* まとめモーダル */
+    .summary-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .summary-modal.hidden {
+      display: none;
+    }
+    .summary-modal-content {
+      background: white;
+      padding: 32px;
+      border-radius: var(--border-radius);
+      max-width: 800px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .summary-header h2 {
+      margin: 0;
+      color: var(--text-primary);
+    }
+    .summary-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .btn-print {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-close-summary {
+      background: #f5f5f5;
+      color: var(--text-secondary);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    
+    /* まとめ内容 */
+    .summary-section {
+      margin-bottom: 24px;
+    }
+    .summary-section h3 {
+      background: var(--primary);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+    .summary-section ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .summary-section li {
+      padding: 8px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+    }
+    .summary-section li:last-child {
+      border-bottom: none;
+    }
+    .summary-section .item-name {
+      font-weight: 500;
+    }
+    .summary-section .item-count {
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .summary-total {
+      background: #fff8e1;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+    .summary-detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .summary-detail-table th,
+    .summary-detail-table td {
+      padding: 8px 12px;
+      border: 1px solid #e0e0e0;
+      text-align: left;
+    }
+    .summary-detail-table th {
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+    .summary-detail-table tr:nth-child(even) {
+      background: #fafafa;
+    }
+    
+    /* 印刷用スタイル */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .summary-modal, .summary-modal * {
+        visibility: visible;
+      }
+      .summary-modal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        background: white;
+        padding: 0;
+      }
+      .summary-modal-content {
+        box-shadow: none;
+        max-height: none;
+        padding: 20px;
+      }
+      .summary-actions {
+        display: none;
+      }
+      .summary-section h3 {
+        background: #333 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
   </style>
 </head>
 <body>
@@ -218,6 +388,7 @@
       <div class="admin-header">
         <h2>注文一覧</h2>
         <div class="admin-actions">
+          <button id="show-summary" class="btn-summary">📋 お店用まとめ</button>
           <button id="export-csv" class="btn-export">📥 CSVダウンロード</button>
           <button id="logout-btn" class="btn-secondary" style="padding: 12px 20px;">🚪 ログアウト</button>
         </div>
@@ -260,6 +431,22 @@
         <div class="loading">読み込み中...</div>
       </div>
     </main>
+    
+    <!-- お店用まとめモーダル -->
+    <div id="summary-modal" class="summary-modal hidden">
+      <div class="summary-modal-content">
+        <div class="summary-header">
+          <h2>🍛 忘年会オーダーまとめ</h2>
+          <div class="summary-actions">
+            <button id="btn-print" class="btn-print">🖨️ 印刷</button>
+            <button id="btn-close-summary" class="btn-close-summary">閉じる</button>
+          </div>
+        </div>
+        <div id="summary-content">
+          <!-- JSで生成 -->
+        </div>
+      </div>
+    </div>
     
     <!-- 削除確認モーダル -->
     <div id="delete-modal" class="delete-modal hidden">
@@ -590,6 +777,263 @@
           </div>
         </div>
       `;
+    }
+    
+    // ====== お店用まとめ ======
+    const summaryModal = document.getElementById('summary-modal');
+    const summaryContent = document.getElementById('summary-content');
+    const showSummaryBtn = document.getElementById('show-summary');
+    const btnPrint = document.getElementById('btn-print');
+    const btnCloseSummary = document.getElementById('btn-close-summary');
+    
+    showSummaryBtn.addEventListener('click', () => {
+      if (allOrders.length === 0) {
+        alert('注文がありません');
+        return;
+      }
+      generateSummary();
+      summaryModal.classList.remove('hidden');
+    });
+    
+    btnCloseSummary.addEventListener('click', () => {
+      summaryModal.classList.add('hidden');
+    });
+    
+    summaryModal.addEventListener('click', (e) => {
+      if (e.target === summaryModal) {
+        summaryModal.classList.add('hidden');
+      }
+    });
+    
+    btnPrint.addEventListener('click', () => {
+      window.print();
+    });
+    
+    function generateSummary() {
+      const orders = allOrders;
+      
+      // 集計用オブジェクト
+      const setTypes = {};
+      const curries = {};
+      const biryanis = {};
+      const drinks = {};
+      const naanUpgrades = {};
+      const alacarteItems = {};
+      
+      // セット注文
+      const setOrders = orders.filter(o => o.orderType === 'set');
+      // アラカルト注文
+      const alacarteOrders = orders.filter(o => o.orderType === 'alacarte');
+      // 子どもセット注文
+      const kidsOrders = orders.filter(o => o.orderType === 'kids');
+      // ドリンクのみ注文
+      const drinkOnlyOrders = orders.filter(o => o.orderType === 'drink-only');
+      
+      // セット集計
+      setOrders.forEach(order => {
+        if (order.setType) {
+          const setName = order.setType.split('（')[0]; // 金額部分を除去
+          setTypes[setName] = (setTypes[setName] || 0) + 1;
+        }
+        if (order.curry) {
+          curries[order.curry] = (curries[order.curry] || 0) + 1;
+        }
+        if (order.biryani) {
+          biryanis[order.biryani] = (biryanis[order.biryani] || 0) + 1;
+        }
+        if (order.drink) {
+          drinks[order.drink] = (drinks[order.drink] || 0) + 1;
+        }
+        if (order.naanUpgrade && order.naanUpgrade !== '変更なし') {
+          naanUpgrades[order.naanUpgrade] = (naanUpgrades[order.naanUpgrade] || 0) + 1;
+        }
+      });
+      
+      // 子ども集計
+      kidsOrders.forEach(order => {
+        if (order.curry) {
+          curries[order.curry] = (curries[order.curry] || 0) + 1;
+        }
+        if (order.drink) {
+          drinks[order.drink] = (drinks[order.drink] || 0) + 1;
+        }
+      });
+      
+      // ドリンクのみ集計
+      drinkOnlyOrders.forEach(order => {
+        if (order.drink) {
+          drinks[order.drink] = (drinks[order.drink] || 0) + 1;
+        }
+      });
+      
+      // アラカルト集計
+      alacarteOrders.forEach(order => {
+        if (order.items) {
+          const items = Array.isArray(order.items) ? order.items : [order.items];
+          items.forEach(item => {
+            alacarteItems[item] = (alacarteItems[item] || 0) + 1;
+          });
+        }
+        if (order.drink) {
+          drinks[order.drink] = (drinks[order.drink] || 0) + 1;
+        }
+      });
+      
+      // HTML生成
+      let html = `
+        <div class="summary-total">
+          📊 注文総数: <strong>${orders.length}名</strong>
+        </div>
+        
+        <div class="summary-section">
+          <h3>【オーダータイプ別】</h3>
+          <ul>
+            <li><span class="item-name">セットメニュー</span><span class="item-count">${setOrders.length}名</span></li>
+            <li><span class="item-name">アラカルト</span><span class="item-count">${alacarteOrders.length}名</span></li>
+            <li><span class="item-name">子どもセット</span><span class="item-count">${kidsOrders.length}名</span></li>
+            <li><span class="item-name">ドリンクのみ</span><span class="item-count">${drinkOnlyOrders.length}名</span></li>
+          </ul>
+        </div>
+      `;
+      
+      // セット別集計
+      if (Object.keys(setTypes).length > 0) {
+        html += `
+          <div class="summary-section">
+            <h3>【セット別集計】</h3>
+            <ul>
+              ${Object.entries(setTypes).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
+                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+              ).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      
+      // カレー集計
+      if (Object.keys(curries).length > 0) {
+        html += `
+          <div class="summary-section">
+            <h3>【カレー集計】</h3>
+            <ul>
+              ${Object.entries(curries).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
+                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+              ).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      
+      // ビリヤニ集計
+      if (Object.keys(biryanis).length > 0) {
+        html += `
+          <div class="summary-section">
+            <h3>【ビリヤニ集計】</h3>
+            <ul>
+              ${Object.entries(biryanis).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
+                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+              ).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      
+      // ドリンク集計
+      if (Object.keys(drinks).length > 0) {
+        html += `
+          <div class="summary-section">
+            <h3>【ドリンク集計】</h3>
+            <ul>
+              ${Object.entries(drinks).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
+                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+              ).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      
+      // ナン変更集計
+      if (Object.keys(naanUpgrades).length > 0) {
+        html += `
+          <div class="summary-section">
+            <h3>【ナン変更集計】</h3>
+            <ul>
+              ${Object.entries(naanUpgrades).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
+                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+              ).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      
+      // アラカルト詳細
+      if (Object.keys(alacarteItems).length > 0) {
+        html += `
+          <div class="summary-section">
+            <h3>【アラカルトメニュー集計】</h3>
+            <ul>
+              ${Object.entries(alacarteItems).sort((a, b) => b[1] - a[1]).map(([name, count]) => 
+                `<li><span class="item-name">${escapeHTML(name)}</span><span class="item-count">${count}</span></li>`
+              ).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      
+      // 個別注文リスト（名前順）
+      const sortedOrders = [...orders].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+      html += `
+        <div class="summary-section">
+          <h3>【個別注文リスト】（名前順・確認用）</h3>
+          <table class="summary-detail-table">
+            <thead>
+              <tr>
+                <th>名前</th>
+                <th>タイプ</th>
+                <th>セット/メニュー</th>
+                <th>カレー/ビリヤニ</th>
+                <th>ドリンク</th>
+                <th>備考</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedOrders.map(order => {
+                let menuCol = '';
+                let curryCol = '';
+                
+                if (order.orderType === 'set') {
+                  menuCol = order.setType ? order.setType.split('（')[0] : '';
+                  curryCol = order.curry || order.biryani || '';
+                  if (order.naanUpgrade && order.naanUpgrade !== '変更なし') {
+                    menuCol += ` (${order.naanUpgrade})`;
+                  }
+                } else if (order.orderType === 'alacarte') {
+                  const items = Array.isArray(order.items) ? order.items : [order.items];
+                  menuCol = items.join(', ');
+                } else if (order.orderType === 'kids') {
+                  menuCol = '子どもセット';
+                  curryCol = order.curry || '';
+                } else if (order.orderType === 'drink-only') {
+                  menuCol = '-';
+                }
+                
+                return `
+                  <tr>
+                    <td>${escapeHTML(order.name)}</td>
+                    <td>${getOrderTypeName(order.orderType)}</td>
+                    <td>${escapeHTML(menuCol)}</td>
+                    <td>${escapeHTML(curryCol)}</td>
+                    <td>${escapeHTML(order.drink || '')}</td>
+                    <td>${escapeHTML(order.notes || '')}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      summaryContent.innerHTML = html;
     }
     
     // ====== CSV Export ======
