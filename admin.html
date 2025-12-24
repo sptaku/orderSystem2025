@@ -1031,17 +1031,23 @@
       let total = 0;
       
       if (order.orderType === 'set') {
-        // セット基本価格
+        // セット基本価格（部分一致で検索）
         const setName = removePrice(order.setType || '');
-        total = priceMap[setName] || 0;
         
-        // タンドリーセットの場合、ドリンク選択で価格が変わる
-        if (setName === 'タンドリー焼き肉とカレーのセット') {
+        // セット名で価格を取得（部分一致）
+        if (setName.includes('サンティ')) {
+          total = 1485;
+        } else if (setName.includes('レディース')) {
+          total = 1850;
+        } else if (setName.includes('タンドリー')) {
+          // タンドリーセットの場合、ドリンク選択で価格が変わる
           if (order.drink && order.drink.includes('2200')) {
             total = 2200;
           } else {
             total = 2100;
           }
+        } else if (setName.includes('ビリヤニ')) {
+          total = 1650;
         }
         
         // ナン変更追加料金
