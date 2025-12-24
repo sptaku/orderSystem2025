@@ -938,17 +938,21 @@
       'タンドリー焼き肉盛り合わせ': 'Tandoori Mixed Grill'
     };
     
-    // メニュー名に英語を追加する関数
+    // メニュー名から価格を除去する関数
+    function removePrice(name) {
+      if (!name) return '';
+      return name.replace(/[\(（].*?[円\)）]/g, '').replace(/\+.*円/g, '').trim();
+    }
+    
+    // メニュー名に英語を追加する関数（価格は除去）
     function addEnglish(name) {
       if (!name) return '';
-      // 価格部分を分離
-      const priceMatch = name.match(/[\(（].*?[円\)）]/);
-      const baseName = name.replace(/[\(（].*?[円\)）]/, '').trim();
+      // 価格部分を除去
+      const baseName = removePrice(name);
       
       // 部分一致で翻訳を検索
       let translation = menuTranslations[baseName];
       if (!translation) {
-        // 価格付きの名前で検索
         for (const [jp, en] of Object.entries(menuTranslations)) {
           if (baseName.includes(jp)) {
             translation = en;
@@ -958,9 +962,109 @@
       }
       
       if (translation) {
-        return `${baseName} / ${translation}${priceMatch ? ' ' + priceMatch[0] : ''}`;
+        return `${baseName} / ${translation}`;
       }
-      return name;
+      return baseName;
+    }
+    
+    // 価格マップ（計算用）
+    const priceMap = {
+      // セット価格
+      'サンティセット': 1485,
+      'レディースセット': 1850,
+      'レディースセット（男性も可）': 1850,
+      'タンドリー焼き肉とカレーのセット': 2100,
+      'ビリヤニセット': 1650,
+      // 子どもセット
+      '子どもセット': 715,
+      // ナン変更（追加料金）
+      'チーズナン(+275円)': 275,
+      'ニンニクチーズナン(+297円)': 297,
+      'ニンニクナン(+176円)': 176,
+      'ほうれん草ナン(+165円)': 165,
+      '野菜詰め物ナン(+220円)': 220,
+      'キーマナン(+275円)': 275,
+      'カシミールナン(+286円)': 286,
+      'バスマティライス(+275円)': 275,
+      // タンドリーセットビール追加
+      '生ビール(2200円)': 2200,
+      '普通ドリンク(2100円)': 2100,
+      // セットドリンクアルコール差額
+      '生ビール(+450円)': 450,
+      '瓶ビール(+560円)': 560,
+      'キングフィッシャービール(+615円)': 615,
+      'ネパールアイスビール(+615円)': 615,
+      'コロナビール(+560円)': 560,
+      'カクテル(+450円)': 450,
+      'サワー(+395円)': 395,
+      'グラスラム(+450円)': 450,
+      'ウイスキーA(+560円)': 560,
+      'ウイスキーB(+450円)': 450
+    };
+    
+    // アラカルト・ドリンク価格（正規表現で抽出）
+    function extractPrice(name) {
+      if (!name) return 0;
+      // priceMapに直接ある場合
+      if (priceMap[name]) return priceMap[name];
+      // セット名（括弧内の価格）
+      for (const [key, price] of Object.entries(priceMap)) {
+        if (name.includes(key)) return price;
+      }
+      // 価格を正規表現で抽出
+      const match = name.match(/[\(（](\d+)円[\)）]/);
+      if (match) return parseInt(match[1], 10);
+      const plusMatch = name.match(/\+(\d+)円/);
+      if (plusMatch) return parseInt(plusMatch[1], 10);
+      return 0;
+    }
+    
+    // 注文の合計金額を計算
+    function calculateTotal(order) {
+      let total = 0;
+      
+      if (order.orderType === 'set') {
+        // セット基本価格
+        const setName = removePrice(order.setType || '');
+        total = priceMap[setName] || 0;
+        
+        // タンドリーセットの場合、ドリンク選択で価格が変わる
+        if (setName === 'タンドリー焼き肉とカレーのセット') {
+          if (order.drink && order.drink.includes('2200')) {
+            total = 2200;
+          } else {
+            total = 2100;
+          }
+        }
+        
+        // ナン変更追加料金
+        if (order.naanUpgrade && order.naanUpgrade !== '変更なし' && order.naanUpgrade !== '') {
+          total += extractPrice(order.naanUpgrade);
+        }
+        
+        // セットドリンクアルコール差額
+        if (order.drink && order.drink.includes('+')) {
+          total += extractPrice(order.drink);
+        }
+      } else if (order.orderType === 'alacarte') {
+        // アラカルト
+        if (order.items) {
+          const items = Array.isArray(order.items) ? order.items : [order.items];
+          items.forEach(item => {
+            total += extractPrice(item);
+          });
+        }
+        // ドリンク
+        total += extractPrice(order.drink);
+      } else if (order.orderType === 'kids') {
+        // 子どもセット
+        total = 715;
+      } else if (order.orderType === 'drink-only') {
+        // ドリンクのみ
+        total += extractPrice(order.drink);
+      }
+      
+      return total;
     }
     
     function generateSummary() {
@@ -986,37 +1090,49 @@
       // セット集計
       setOrders.forEach(order => {
         if (order.setType) {
-          const setName = order.setType.split('（')[0]; // 金額部分を除去
+          const setName = removePrice(order.setType); // 金額部分を除去
           setTypes[setName] = (setTypes[setName] || 0) + 1;
         }
         if (order.curry) {
-          curries[order.curry] = (curries[order.curry] || 0) + 1;
+          // レディースセットは「、」区切りで2種類あるので分割
+          const curryList = order.curry.split('、').map(c => removePrice(c.trim()));
+          curryList.forEach(curry => {
+            if (curry) {
+              curries[curry] = (curries[curry] || 0) + 1;
+            }
+          });
         }
         if (order.biryani) {
-          biryanis[order.biryani] = (biryanis[order.biryani] || 0) + 1;
+          const biryaniName = removePrice(order.biryani);
+          biryanis[biryaniName] = (biryanis[biryaniName] || 0) + 1;
         }
         if (order.drink) {
-          drinks[order.drink] = (drinks[order.drink] || 0) + 1;
+          const drinkName = removePrice(order.drink);
+          drinks[drinkName] = (drinks[drinkName] || 0) + 1;
         }
         if (order.naanUpgrade && order.naanUpgrade !== '変更なし') {
-          naanUpgrades[order.naanUpgrade] = (naanUpgrades[order.naanUpgrade] || 0) + 1;
+          const naanName = removePrice(order.naanUpgrade);
+          naanUpgrades[naanName] = (naanUpgrades[naanName] || 0) + 1;
         }
       });
       
       // 子ども集計
       kidsOrders.forEach(order => {
         if (order.curry) {
-          curries[order.curry] = (curries[order.curry] || 0) + 1;
+          const curryName = removePrice(order.curry);
+          curries[curryName] = (curries[curryName] || 0) + 1;
         }
         if (order.drink) {
-          drinks[order.drink] = (drinks[order.drink] || 0) + 1;
+          const drinkName = removePrice(order.drink);
+          drinks[drinkName] = (drinks[drinkName] || 0) + 1;
         }
       });
       
       // ドリンクのみ集計
       drinkOnlyOrders.forEach(order => {
         if (order.drink) {
-          drinks[order.drink] = (drinks[order.drink] || 0) + 1;
+          const drinkName = removePrice(order.drink);
+          drinks[drinkName] = (drinks[drinkName] || 0) + 1;
         }
       });
       
@@ -1025,11 +1141,13 @@
         if (order.items) {
           const items = Array.isArray(order.items) ? order.items : [order.items];
           items.forEach(item => {
-            alacarteItems[item] = (alacarteItems[item] || 0) + 1;
+            const itemName = removePrice(item);
+            alacarteItems[itemName] = (alacarteItems[itemName] || 0) + 1;
           });
         }
         if (order.drink) {
-          drinks[order.drink] = (drinks[order.drink] || 0) + 1;
+          const drinkName = removePrice(order.drink);
+          drinks[drinkName] = (drinks[drinkName] || 0) + 1;
         }
       });
       
@@ -1136,56 +1254,64 @@
       
       // 個別注文リスト（名前順）
       const sortedOrders = [...orders].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
-      html += `
-        <div class="summary-section">
-          <h3>【個別注文リスト / Individual Order List】（名前順 / Alphabetical）</h3>
-          <table class="summary-detail-table">
-            <thead>
-              <tr>
-                <th>名前<br>Name</th>
-                <th>タイプ<br>Type</th>
-                <th>セット/メニュー<br>Set/Menu</th>
-                <th>カレー/ビリヤニ<br>Curry/Biryani</th>
-                <th>ドリンク<br>Drink</th>
-                <th>備考<br>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sortedOrders.map(order => {
-                let menuCol = '';
-                let curryCol = '';
-                
-                if (order.orderType === 'set') {
-                  menuCol = order.setType ? addEnglish(order.setType.split('（')[0]) : '';
-                  curryCol = addEnglish(order.curry || order.biryani || '');
-                  if (order.naanUpgrade && order.naanUpgrade !== '変更なし') {
-                    menuCol += ` (${addEnglish(order.naanUpgrade)})`;
-                  }
-                } else if (order.orderType === 'alacarte') {
-                  const items = Array.isArray(order.items) ? order.items : [order.items];
-                  menuCol = items.map(item => addEnglish(item)).join(', ');
-                } else if (order.orderType === 'kids') {
-                  menuCol = '子どもセット / Kids Set';
-                  curryCol = addEnglish(order.curry || '');
-                } else if (order.orderType === 'drink-only') {
-                  menuCol = '-';
-                }
-                
-                return `
-                  <tr>
-                    <td>${escapeHTML(order.name)}</td>
-                    <td>${getOrderTypeName(order.orderType)}</td>
-                    <td>${escapeHTML(menuCol)}</td>
-                    <td>${escapeHTML(curryCol)}</td>
-                    <td>${escapeHTML(addEnglish(order.drink || ''))}</td>
-                    <td>${escapeHTML(order.notes || '')}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
+      let grandTotal = 0;
+      
+      // 各行を生成
+      const tableRows = sortedOrders.map(order => {
+        let menuCol = '';
+        let curryCol = '';
+        const total = calculateTotal(order);
+        grandTotal += total;
+        
+        if (order.orderType === 'set') {
+          menuCol = order.setType ? addEnglish(removePrice(order.setType)) : '';
+          // カレーは「、」で分割して改行表示
+          if (order.curry) {
+            const curryList = order.curry.split('、').map(c => addEnglish(removePrice(c.trim())));
+            curryCol = curryList.join('<br>');
+          } else if (order.biryani) {
+            curryCol = addEnglish(removePrice(order.biryani));
+          }
+          if (order.naanUpgrade && order.naanUpgrade !== '変更なし' && order.naanUpgrade !== '') {
+            menuCol += '<br>+ ' + addEnglish(removePrice(order.naanUpgrade));
+          }
+        } else if (order.orderType === 'alacarte') {
+          const items = Array.isArray(order.items) ? order.items : [order.items];
+          menuCol = items.map(item => addEnglish(removePrice(item))).join('<br>');
+        } else if (order.orderType === 'kids') {
+          menuCol = '子どもセット / Kids Set';
+          curryCol = addEnglish(removePrice(order.curry || ''));
+        } else if (order.orderType === 'drink-only') {
+          menuCol = '-';
+        }
+        
+        return '<tr>' +
+          '<td>' + escapeHTML(order.name) + '</td>' +
+          '<td>' + getOrderTypeName(order.orderType) + '</td>' +
+          '<td>' + menuCol + '</td>' +
+          '<td>' + curryCol + '</td>' +
+          '<td>' + addEnglish(removePrice(order.drink || '')) + '</td>' +
+          '<td style="text-align: right; font-weight: bold;">¥' + total.toLocaleString() + '</td>' +
+          '</tr>';
+      }).join('');
+      
+      html += '<div class="summary-section">' +
+        '<h3>【個別注文リスト / Individual Order List】（名前順 / Alphabetical）</h3>' +
+        '<table class="summary-detail-table">' +
+        '<thead><tr>' +
+        '<th>名前<br>Name</th>' +
+        '<th>タイプ<br>Type</th>' +
+        '<th>セット/メニュー<br>Set/Menu</th>' +
+        '<th>カレー/ビリヤニ<br>Curry/Biryani</th>' +
+        '<th>ドリンク<br>Drink</th>' +
+        '<th>金額<br>Price</th>' +
+        '</tr></thead>' +
+        '<tbody>' + tableRows + '</tbody>' +
+        '<tfoot><tr style="background: #fff8e1; font-weight: bold;">' +
+        '<td colspan="5" style="text-align: right;">合計 / Total:</td>' +
+        '<td style="text-align: right; font-size: 1.1em;">¥' + grandTotal.toLocaleString() + '</td>' +
+        '</tr></tfoot>' +
+        '</table></div>';
       
       summaryContent.innerHTML = html;
     }
