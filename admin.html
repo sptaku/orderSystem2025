@@ -1257,7 +1257,7 @@
       let grandTotal = 0;
       
       // 各行を生成
-      const tableRows = sortedOrders.map(order => {
+      const tableRows = sortedOrders.map((order, index) => {
         let menuCol = '';
         let curryCol = '';
         const total = calculateTotal(order);
@@ -1286,6 +1286,7 @@
         }
         
         return '<tr>' +
+          '<td style="text-align: center; font-weight: bold;">' + (index + 1) + '</td>' +
           '<td>' + escapeHTML(order.name) + '</td>' +
           '<td>' + getOrderTypeName(order.orderType) + '</td>' +
           '<td>' + menuCol + '</td>' +
@@ -1299,6 +1300,7 @@
         '<h3>【個別注文リスト / Individual Order List】（名前順 / Alphabetical）</h3>' +
         '<table class="summary-detail-table">' +
         '<thead><tr>' +
+        '<th>No.</th>' +
         '<th>名前<br>Name</th>' +
         '<th>タイプ<br>Type</th>' +
         '<th>セット/メニュー<br>Set/Menu</th>' +
@@ -1308,7 +1310,7 @@
         '</tr></thead>' +
         '<tbody>' + tableRows + '</tbody>' +
         '<tfoot><tr style="background: #fff8e1; font-weight: bold;">' +
-        '<td colspan="5" style="text-align: right;">合計 / Total:</td>' +
+        '<td colspan="6" style="text-align: right;">合計 / Total:</td>' +
         '<td style="text-align: right; font-size: 1.1em;">¥' + grandTotal.toLocaleString() + '</td>' +
         '</tr></tfoot>' +
         '</table></div>';
