@@ -166,11 +166,27 @@
       background: #fafafa;
     }
     
+    .summary-grand-total {
+      background: #fff8e1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 12px;
+      text-align: right;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    
     /* 印刷/PDF用スタイル */
     @media print {
       body {
         padding: 0;
         font-size: 11pt;
+      }
+      
+      .summary-grand-total {
+        background: #eee !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
       
       .controls {
@@ -681,11 +697,10 @@
         '<th>' + getLabel('備考', 'Notes') + '</th>' +
         '</tr></thead>' +
         '<tbody>' + tableRows + '</tbody>' +
-        '<tfoot><tr style="background: #fff8e1; font-weight: bold;">' +
-        '<td colspan="7" style="text-align: right;">' + getLabel('合計', 'Total') + ':</td>' +
-        '<td style="text-align: right; font-size: 1.1em;">¥' + grandTotal.toLocaleString() + '</td>' +
-        '</tr></tfoot>' +
-        '</table></div>';
+        '</table>' +
+        '<div class="summary-grand-total" style="background: #fff8e1; padding: 12px 16px; border-radius: 8px; margin-top: 12px; text-align: right; font-weight: bold; font-size: 1.1em;">' +
+        getLabel('合計', 'Total') + ': <span style="color: #e65100;">¥' + grandTotal.toLocaleString() + '</span>' +
+        '</div></div>';
       
       document.getElementById('summary-content').innerHTML = html;
     }
@@ -819,6 +834,15 @@
       font-weight: 600;
     }
     .summary-detail-table tr:nth-child(even) { background: #fafafa; }
+    .summary-grand-total {
+      background: #fff8e1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 12px;
+      text-align: right;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
     @media print {
       .print-actions { display: none !important; }
       body { padding: 0; }
@@ -827,7 +851,7 @@
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
-      .summary-total {
+      .summary-total, .summary-grand-total {
         background: #eee !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
