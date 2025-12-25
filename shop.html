@@ -714,13 +714,23 @@
           menuCol = '-';
         }
         
+        // ドリンク名を取得
+        let drinkDisplay = removePrice(order.drink || '');
+        
+        // 備考を要約（40文字以上は省略）
         let notesCol = '';
         if (order.notes) {
           notesCol = order.notes.length > 40 ? order.notes.substring(0, 40) + '...' : order.notes;
         }
         
-        // ドリンク名を取得（個別オーダー表では普通ドリンクのまま表示）
-        let drinkDisplay = removePrice(order.drink || '');
+        // タンドリーセットで普通ドリンクの場合、備考欄からドリンク名を抽出してドリンク列に表示し、備考欄は空にする
+        if (drinkDisplay === '普通ドリンク' || drinkDisplay.includes('普通ドリンク')) {
+          const actualDrink = extractDrinkFromNotes(order.notes);
+          if (actualDrink) {
+            drinkDisplay = actualDrink;
+            notesCol = ''; // 備考欄は空にする
+          }
+        }
         
         tableRows += '<tr>' +
           '<td style="text-align: center; font-weight: bold;">' + (index + 1) + '</td>' +
