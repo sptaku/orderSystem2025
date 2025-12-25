@@ -177,6 +177,29 @@
       border: 2px solid #e65100;
     }
     
+    .sort-controls .sort-btn {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      background: #f5f5f5;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .sort-controls .sort-btn:hover {
+      background: #e0e0e0;
+    }
+    .sort-controls .sort-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .sort-controls .reset-btn {
+      background: #fff3e0;
+      border-color: #ffb74d;
+      color: #e65100;
+    }
+    
     /* 印刷/PDF用スタイル */
     @media print {
       body {
@@ -190,7 +213,7 @@
         print-color-adjust: exact;
       }
       
-      .controls {
+      .controls, .sort-controls {
         display: none !important;
       }
       
@@ -245,6 +268,10 @@
     // 言語設定
     let currentLang = 'both'; // 'both', 'ja', 'en'
     let allOrders = [];
+    
+    // 並べ替え設定
+    let sortKey = 'name'; // 'name', 'type', 'price', 'timestamp'
+    let sortOrder = 'asc'; // 'asc', 'desc'
     
     // メニュー翻訳マップ
     const menuTranslations = {
@@ -633,8 +660,28 @@
         html += '</ul></div>';
       }
       
-      // 個別注文リスト
-      const sortedOrders = [...orders].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+      // 個別注文リスト（並べ替え対応）
+      let sortedOrders = [...orders];
+      
+      // 並べ替え処理
+      const sortMultiplier = sortOrder === 'asc' ? 1 : -1;
+      switch (sortKey) {
+        case 'name':
+          sortedOrders.sort((a, b) => sortMultiplier * (a.name || '').localeCompare(b.name || '', 'ja'));
+          break;
+        case 'type':
+          sortedOrders.sort((a, b) => sortMultiplier * (a.orderType || '').localeCompare(b.orderType || ''));
+          break;
+        case 'price':
+          sortedOrders.sort((a, b) => sortMultiplier * (calculateTotal(a) - calculateTotal(b)));
+          break;
+        case 'timestamp':
+          sortedOrders.sort((a, b) => sortMultiplier * ((a.timestampMs || 0) - (b.timestampMs || 0)));
+          break;
+        default:
+          sortedOrders.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+      }
+      
       let grandTotal = 0;
       
       let tableRows = '';
@@ -686,6 +733,18 @@
       
       html += '<div class="summary-section">' +
         '<h3>' + getLabel('【個別注文リスト】', '【Individual Order List】') + '</h3>' +
+        '<div class="sort-controls" style="margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">' +
+        '<span style="font-weight: 600;">' + getLabel('並べ替え:', 'Sort by:') + '</span>' +
+        '<button class="sort-btn' + (sortKey === 'name' ? ' active' : '') + '" data-sort="name">' + getLabel('名前', 'Name') + '</button>' +
+        '<button class="sort-btn' + (sortKey === 'type' ? ' active' : '') + '" data-sort="type">' + getLabel('タイプ', 'Type') + '</button>' +
+        '<button class="sort-btn' + (sortKey === 'price' ? ' active' : '') + '" data-sort="price">' + getLabel('金額', 'Price') + '</button>' +
+        '<button class="sort-btn' + (sortKey === 'timestamp' ? ' active' : '') + '" data-sort="timestamp">' + getLabel('注文日時', 'Order Time') + '</button>' +
+        '<span style="margin-left: 8px;">|</span>' +
+        '<button class="sort-btn order-btn' + (sortOrder === 'asc' ? ' active' : '') + '" data-order="asc">↑ ' + getLabel('昇順', 'Asc') + '</button>' +
+        '<button class="sort-btn order-btn' + (sortOrder === 'desc' ? ' active' : '') + '" data-order="desc">↓ ' + getLabel('降順', 'Desc') + '</button>' +
+        '<span style="margin-left: 8px;">|</span>' +
+        '<button class="sort-btn reset-btn" data-reset="true">' + getLabel('デフォルトに戻す', 'Reset') + '</button>' +
+        '</div>' +
         '<table class="summary-detail-table">' +
         '<thead><tr>' +
         '<th>No.</th>' +
@@ -704,7 +763,31 @@
         '💰 ' + getLabel('合計金額', 'Grand Total') + ': <span style="color: #e65100; font-size: 1.3em;">¥' + grandTotal.toLocaleString() + '</span>' +
         '</div>';
       
-      document.getElementById('summary-content').innerHTML = html;
+      const summaryContent = document.getElementById('summary-content');
+      summaryContent.innerHTML = html;
+      
+      // ソートボタンのイベントリスナー
+      summaryContent.querySelectorAll('.sort-btn[data-sort]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sortKey = btn.dataset.sort;
+          generateSummary();
+        });
+      });
+      
+      summaryContent.querySelectorAll('.sort-btn[data-order]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sortOrder = btn.dataset.order;
+          generateSummary();
+        });
+      });
+      
+      summaryContent.querySelectorAll('.sort-btn[data-reset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sortKey = 'name';
+          sortOrder = 'asc';
+          generateSummary();
+        });
+      });
     }
     
     // タイトル更新
@@ -846,8 +929,26 @@
       font-size: 1.2em;
       border: 2px solid #e65100;
     }
+    .sort-controls .sort-btn {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      background: #f5f5f5;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .sort-controls .sort-btn.active {
+      background: #e65100;
+      color: white;
+      border-color: #e65100;
+    }
+    .sort-controls .reset-btn {
+      background: #fff3e0;
+      border-color: #ffb74d;
+      color: #e65100;
+    }
     @media print {
-      .print-actions { display: none !important; }
+      .print-actions, .sort-controls { display: none !important; }
       body { padding: 0; }
       .summary-section h3 {
         background: #333 !important;
