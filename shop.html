@@ -270,7 +270,7 @@
     let allOrders = [];
     
     // 並べ替え設定
-    let sortKey = 'name'; // 'name', 'type', 'price', 'timestamp'
+    let sortKey = 'name'; // 'name', 'type', 'set', 'price', 'timestamp'
     let sortOrder = 'asc'; // 'asc', 'desc'
     
     // メニュー翻訳マップ
@@ -672,6 +672,9 @@
         case 'type':
           sortedOrders.sort((a, b) => sortMultiplier * (a.orderType || '').localeCompare(b.orderType || ''));
           break;
+        case 'set':
+          sortedOrders.sort((a, b) => sortMultiplier * (removePrice(a.setType || '') || '').localeCompare(removePrice(b.setType || '') || '', 'ja'));
+          break;
         case 'price':
           sortedOrders.sort((a, b) => sortMultiplier * (calculateTotal(a) - calculateTotal(b)));
           break;
@@ -737,6 +740,7 @@
         '<span style="font-weight: 600;">' + getLabel('並べ替え:', 'Sort by:') + '</span>' +
         '<button class="sort-btn' + (sortKey === 'name' ? ' active' : '') + '" data-sort="name">' + getLabel('名前', 'Name') + '</button>' +
         '<button class="sort-btn' + (sortKey === 'type' ? ' active' : '') + '" data-sort="type">' + getLabel('タイプ', 'Type') + '</button>' +
+        '<button class="sort-btn' + (sortKey === 'set' ? ' active' : '') + '" data-sort="set">' + getLabel('セット', 'Set') + '</button>' +
         '<button class="sort-btn' + (sortKey === 'price' ? ' active' : '') + '" data-sort="price">' + getLabel('金額', 'Price') + '</button>' +
         '<button class="sort-btn' + (sortKey === 'timestamp' ? ' active' : '') + '" data-sort="timestamp">' + getLabel('注文日時', 'Order Time') + '</button>' +
         '<span style="margin-left: 8px;">|</span>' +
